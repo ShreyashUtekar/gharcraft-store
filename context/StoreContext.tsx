@@ -15,6 +15,35 @@ export interface Coupon {
   description: string;
 }
 
+export interface CustomerOrder {
+  id: string;
+  date: string;
+  customerName: string;
+  phone: string;
+  email: string;
+  address: string;
+  pincode: string;
+  city: string;
+  state: string;
+  items: {
+    productId: string;
+    productName: string;
+    quantity: number;
+    color?: string;
+    price: number;
+  }[];
+  paymentMethod: 'upi' | 'cod' | 'card' | 'netbanking';
+  subtotal: number;
+  discountAmount: number;
+  shippingFee: number;
+  totalAmount: number;
+  status: 'Processing' | 'Placed on Supplier' | 'Shipped' | 'Delivered';
+  gstDetails?: {
+    companyName: string;
+    gstin: string;
+  };
+}
+
 const VALID_COUPONS: Record<string, Coupon> = {
   'WELCOME10': { code: 'WELCOME10', discountPercent: 10, description: '10% OFF on your first home transformation order' },
   'GHAR20': { code: 'GHAR20', discountPercent: 20, description: '20% OFF Special Festival Discount' },
@@ -54,6 +83,9 @@ interface StoreContextType {
   grandTotal: number;
   recentlyViewed: Product[];
   addRecentlyViewed: (product: Product) => void;
+  orders: CustomerOrder[];
+  addOrder: (order: CustomerOrder) => void;
+  updateOrderStatus: (orderId: string, status: CustomerOrder['status']) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -77,14 +109,72 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [giftMessage, setGiftMessage] = useState<string>('');
   const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([]);
 
-  // Seed cart with 2 default items for vibrant demo
+  // Orders State (Initial sample order + stored orders)
+  const [orders, setOrders] = useState<CustomerOrder[]>([
+    {
+      id: 'GHAR-98412',
+      date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      customerName: 'Rahul Sharma',
+      phone: '9876543210',
+      email: 'rahul.sharma@example.com',
+      address: 'Flat 402, Green Acres Heights, Off Linking Road, Bandra West',
+      pincode: '400001',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      items: [
+        { productId: 'gharcraft-spice-jars-12', productName: 'Borosilicate Glass Spice Jar Set with Bamboo Lids (Set of 12)', quantity: 1, color: 'Natural Bamboo', price: 1499 },
+        { productId: 'gharcraft-under-sink-organizer', productName: '2-Tier Expandable Under-Sink Storage Rack', quantity: 1, color: 'Nordic White', price: 1899 },
+      ],
+      paymentMethod: 'upi',
+      subtotal: 3398,
+      discountAmount: 0,
+      shippingFee: 0,
+      totalAmount: 3398,
+      status: 'Processing',
+    },
+  ]);
+
+  // Seed default cart & restore stored orders
   useEffect(() => {
     setCart([
       { product: PRODUCTS[0], quantity: 1, selectedColor: 'Natural Bamboo' },
       { product: PRODUCTS[1], quantity: 1, selectedColor: 'Nordic White' },
     ]);
     setRecentlyViewed([PRODUCTS[0], PRODUCTS[1], PRODUCTS[2]]);
+
+    try {
+      const savedOrders = localStorage.getItem('gharcraft_orders');
+      if (savedOrders) {
+        setOrders(JSON.parse(savedOrders));
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
+
+  const addOrder = (newOrder: CustomerOrder) => {
+    setOrders((prev) => {
+      const updated = [newOrder, ...prev];
+      try {
+        localStorage.setItem('gharcraft_orders', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  const updateOrderStatus = (orderId: string, status: CustomerOrder['status']) => {
+    setOrders((prev) => {
+      const updated = prev.map((o) => (o.id === orderId ? { ...o, status } : o));
+      try {
+        localStorage.setItem('gharcraft_orders', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
 
   const addToCart = (product: Product, quantity: number = 1, color?: string) => {
     setCart((prev) => {
@@ -219,6 +309,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         grandTotal,
         recentlyViewed,
         addRecentlyViewed,
+        orders,
+        addOrder,
+        updateOrderStatus,
       }}
     >
       {children}

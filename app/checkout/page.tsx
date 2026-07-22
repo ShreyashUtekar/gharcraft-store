@@ -4,16 +4,16 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ShieldCheck, Truck, ArrowRight, CheckCircle2, QrCode, CreditCard, Banknote, Building2, Sparkles } from 'lucide-react';
-import { useStore } from '@/context/StoreContext';
+import { useStore, CustomerOrder } from '@/context/StoreContext';
 
 export default function CheckoutPage() {
-  const { cart, subtotal, discountAmount, shippingFee, grandTotal, appliedCoupon, clearCart } = useStore();
+  const { cart, subtotal, discountAmount, shippingFee, grandTotal, appliedCoupon, clearCart, addOrder } = useStore();
 
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'cod' | 'card' | 'netbanking'>('upi');
   const [upiApp, setUpiApp] = useState<'gpay' | 'phonepe' | 'paytm'>('gpay');
   const [needGst, setNeedGst] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
-  const [orderId, setOrderId] = useState('');
+  const [createdOrder, setCreatedOrder] = useState<CustomerOrder | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -21,7 +21,7 @@ export default function CheckoutPage() {
     phone: '9876543210',
     email: 'rahul.sharma@example.com',
     pincode: '400001',
-    address: 'Flat 402, Green Acres Heights, Off Linking Road',
+    address: 'Flat 402, Green Acres Heights, Off Linking Road, Bandra West',
     city: 'Mumbai',
     state: 'Maharashtra',
     companyName: '',
@@ -38,12 +38,40 @@ export default function CheckoutPage() {
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
     const generatedId = `GHAR-${Math.floor(100000 + Math.random() * 900000)}`;
-    setOrderId(generatedId);
+
+    const newOrder: CustomerOrder = {
+      id: generatedId,
+      date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      customerName: formData.fullName,
+      phone: formData.phone,
+      email: formData.email,
+      address: formData.address,
+      pincode: formData.pincode,
+      city: formData.city,
+      state: formData.state,
+      items: cart.map((item) => ({
+        productId: item.product.id,
+        productName: item.product.name,
+        quantity: item.quantity,
+        color: item.selectedColor,
+        price: item.product.price,
+      })),
+      paymentMethod: paymentMethod,
+      subtotal: subtotal,
+      discountAmount: discountAmount,
+      shippingFee: shippingFee,
+      totalAmount: grandTotal,
+      status: 'Processing',
+      gstDetails: needGst ? { companyName: formData.companyName, gstin: formData.gstin } : undefined,
+    };
+
+    addOrder(newOrder);
+    setCreatedOrder(newOrder);
     setOrderConfirmed(true);
     clearCart();
   };
 
-  if (orderConfirmed) {
+  if (orderConfirmed && createdOrder) {
     return (
       <div className="bg-brandBg min-h-screen py-16 flex items-center justify-center">
         <div className="max-w-xl w-full mx-4 bg-white p-8 sm:p-10 rounded-3xl border border-gray-200 shadow-2xl text-center space-y-6 animate-slide-up">
@@ -56,21 +84,21 @@ export default function CheckoutPage() {
               Order Confirmed & Placed
             </span>
             <h1 className="font-heading font-bold text-2xl sm:text-3xl text-dark mt-3">
-              Thank You, {formData.fullName}!
+              Thank You, {createdOrder.customerName}!
             </h1>
             <p className="text-xs text-gray-500 mt-1">
-              Your home organization products are being packed with care at our Mumbai warehouse.
+              Your home organization products are being packed with care at our warehouse.
             </p>
           </div>
 
           <div className="bg-brandBg p-4 rounded-2xl border border-gray-200 text-left space-y-2 text-xs">
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500">Order ID:</span>
-              <strong className="font-mono text-dark text-sm">{orderId}</strong>
+              <strong className="font-mono text-dark text-sm">{createdOrder.id}</strong>
             </div>
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500">Payment Method:</span>
-              <strong className="uppercase text-dark">{paymentMethod}</strong>
+              <strong className="uppercase text-dark">{createdOrder.paymentMethod}</strong>
             </div>
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500">Estimated Delivery:</span>
@@ -78,22 +106,22 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Delivery Address:</span>
-              <span className="text-dark text-right font-medium">{formData.address}, {formData.city} - {formData.pincode}</span>
+              <span className="text-dark text-right font-medium">{createdOrder.address}, {createdOrder.city} - {createdOrder.pincode}</span>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Link
-              href={`/track-order?awb=${orderId}`}
+              href={`/track-order?awb=${createdOrder.id}`}
               className="flex-1 bg-primary hover:bg-primary-dark text-white font-heading font-semibold py-3.5 px-6 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-md transition-all"
             >
               <Truck className="w-4 h-4" /> Live Order Tracking
             </Link>
             <Link
-              href="/"
-              className="bg-white hover:bg-gray-100 text-dark font-heading font-semibold py-3.5 px-6 rounded-2xl border border-gray-200 text-xs transition-colors"
+              href="/admin"
+              className="bg-dark hover:bg-primary text-white font-heading font-semibold py-3.5 px-6 rounded-2xl text-xs transition-colors"
             >
-              Continue Shopping
+              View In Merchant Admin Portal
             </Link>
           </div>
         </div>
@@ -131,7 +159,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-dark block mb-1">Mobile Number (For Delivery OTP) *</label>
+                  <label className="font-semibold text-dark block mb-1">Mobile Number (For Delivery OTP & Call) *</label>
                   <input
                     type="tel"
                     required
@@ -151,7 +179,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="font-semibold text-dark block mb-1">Flat / House No., Building Name & Street *</label>
+                  <label className="font-semibold text-dark block mb-1">Flat / House No., Building Name & Street Address *</label>
                   <input
                     type="text"
                     required
