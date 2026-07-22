@@ -2,15 +2,81 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, DollarSign, ShoppingBag, Users, Tag, Package, ArrowUpRight, CheckCircle2, Clock, Truck, Edit3, Copy, Download, FileSpreadsheet, Check } from 'lucide-react';
-import { PRODUCTS, Product } from '@/data/products';
+import Image from 'next/image';
+import { Sparkles, DollarSign, ShoppingBag, Users, Tag, Package, ArrowUpRight, CheckCircle2, Clock, Truck, Edit3, Copy, Download, FileSpreadsheet, Check, Lock, Plus, Trash2, X, RefreshCw, LogOut } from 'lucide-react';
+import { Product } from '@/data/products';
 import { useStore, CustomerOrder } from '@/context/StoreContext';
 
 export default function AdminPage() {
-  const { orders, updateOrderStatus } = useStore();
-  const [activeTab, setActiveTab] = useState<'orders' | 'overview' | 'inventory' | 'coupons'>('orders');
+  const {
+    products,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    orders,
+    updateOrderStatus,
+    isAdminAuthenticated,
+    adminLogin,
+    adminLogout,
+  } = useStore();
+
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passError, setPassError] = useState('');
+
+  const [activeTab, setActiveTab] = useState<'inventory' | 'orders' | 'overview' | 'coupons'>('inventory');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('All');
+
+  // Add Product Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newProdName, setNewProdName] = useState('');
+  const [newProdTagline, setNewProdTagline] = useState('');
+  const [newProdCategory, setNewProdCategory] = useState<'Kitchen' | 'Storage' | 'Bathroom' | 'Laundry' | 'Living'>('Kitchen');
+  const [newProdPrice, setNewProdPrice] = useState('1499');
+  const [newProdMrp, setNewProdMrp] = useState('2299');
+  const [newProdMaterial, setNewProdMaterial] = useState('Glass & Bamboo');
+  const [newProdImg1, setNewProdImg1] = useState('https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?q=80&w=1000&auto=format&fit=crop');
+  const [newProdDescription, setNewProdDescription] = useState('Premium space-saving home organizer engineered for modern Indian living.');
+  const [newProdFeatures, setNewProdFeatures] = useState('BPA-Free, Moisture Proof Seal, Easy to Clean');
+
+  const handleAdminAuthSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = adminLogin(passwordInput);
+    if (!success) {
+      setPassError('Invalid Admin Password. Try "admin123" or "admin".');
+    } else {
+      setPassError('');
+    }
+  };
+
+  const handleCreateProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProdName || !newProdPrice) return;
+
+    addProduct({
+      name: newProdName,
+      tagline: newProdTagline || 'Smart space saver for Indian homes',
+      category: newProdCategory,
+      price: Number(newProdPrice),
+      mrp: Number(newProdMrp),
+      images: [newProdImg1],
+      description: newProdDescription,
+      features: newProdFeatures.split(',').map((s) => s.trim()),
+      specifications: {
+        'Material': newProdMaterial,
+        'Origin': 'Made for Indian Homes',
+      },
+      stockStatus: 'In Stock',
+      material: newProdMaterial,
+      rating: 5.0,
+      reviewsCount: 1,
+    });
+
+    setShowAddModal(false);
+    // Reset inputs
+    setNewProdName('');
+    setNewProdTagline('');
+  };
 
   const copyDispatchTicket = (ord: CustomerOrder) => {
     const text = `DISPATCH TICKET for ${ord.id}
@@ -55,6 +121,51 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
     document.body.removeChild(link);
   };
 
+  // ADMIN PASSWORD LOCK SCREEN
+  if (!isAdminAuthenticated) {
+    return (
+      <div className="bg-brandBg min-h-screen py-20 flex items-center justify-center">
+        <div className="max-w-md w-full mx-4 bg-white p-8 rounded-3xl border border-gray-200 shadow-2xl space-y-6 animate-slide-up text-center">
+          <div className="w-16 h-16 bg-dark text-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
+            <Lock className="w-8 h-8 text-amber-400" />
+          </div>
+
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+              Protected Merchant Access
+            </span>
+            <h1 className="font-heading font-bold text-2xl text-dark mt-2">GharCraft Admin Portal</h1>
+            <p className="text-xs text-gray-500 mt-1">Enter your merchant password to manage products, pricing, and orders.</p>
+          </div>
+
+          <form onSubmit={handleAdminAuthSubmit} className="space-y-4 text-xs text-left">
+            <div>
+              <label className="font-semibold text-dark block mb-1">Admin Password</label>
+              <input
+                type="password"
+                required
+                placeholder="Enter password (e.g. admin123)"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-primary font-mono"
+              />
+              <span className="text-[10px] text-gray-400 mt-1 block">Default password: <strong>admin123</strong></span>
+            </div>
+
+            {passError && <p className="text-red-500 text-xs font-bold">{passError}</p>}
+
+            <button
+              type="submit"
+              className="w-full bg-primary hover:bg-primary-dark text-white font-heading font-semibold py-3.5 rounded-2xl transition-all shadow-md text-xs"
+            >
+              Unlock Merchant Dashboard &rarr;
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   const filteredOrders = statusFilter === 'All'
     ? orders
     : orders.filter((o) => o.status === statusFilter);
@@ -69,34 +180,40 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           <div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Merchant Manual Dispatch Portal</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Authenticated Admin Session</span>
             </div>
-            <h1 className="font-heading font-bold text-2xl sm:text-3xl mt-1">GharCraft Orders & Logistics Dispatch</h1>
-            <p className="text-xs text-gray-400 mt-1">View customer addresses, copy fulfillment tickets for Roposo/Shiprocket, and export CSV.</p>
+            <h1 className="font-heading font-bold text-2xl sm:text-3xl mt-1">GharCraft Product & Order Operations</h1>
+            <p className="text-xs text-gray-400 mt-1">Add/Edit real store products, manage inventory prices, and dispatch customer tickets.</p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
-              onClick={exportCSV}
+              onClick={() => setShowAddModal(true)}
               className="bg-primary hover:bg-primary-dark text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              <FileSpreadsheet className="w-4 h-4" /> Export CSV Spreadsheet
+              <Plus className="w-4 h-4" /> Add New Real Product
             </button>
-            <Link
-              href="/"
-              className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors"
+            <button
+              onClick={exportCSV}
+              className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1.5"
             >
-              Live Storefront &rarr;
-            </Link>
+              <FileSpreadsheet className="w-4 h-4" /> Export CSV
+            </button>
+            <button
+              onClick={adminLogout}
+              className="bg-white/10 hover:bg-red-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Lock Admin
+            </button>
           </div>
         </div>
 
-        {/* Admin Navigation Tabs */}
+        {/* Navigation Tabs */}
         <div className="flex gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
           {[
-            { id: 'orders', label: `Customer Dispatch Tickets (${orders.length})` },
+            { id: 'inventory', label: `Real Product Catalog (${products.length} Items)` },
+            { id: 'orders', label: `Customer Orders & Dispatch (${orders.length})` },
             { id: 'overview', label: 'Analytics Overview' },
-            { id: 'inventory', label: 'Product Inventory' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -112,7 +229,82 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           ))}
         </div>
 
-        {/* TAB 1: CUSTOMER DISPATCH TICKETS (PRIMARY FOR DROPSHIPPING) */}
+        {/* TAB 1: PRODUCT CATALOG & INVENTORY MANAGEMENT */}
+        {activeTab === 'inventory' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs">
+              <span className="font-bold text-dark text-sm">Real Products Database ({products.length} Active Products)</span>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-primary text-white font-semibold px-4 py-2 rounded-xl flex items-center gap-1 hover:bg-primary-dark transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Add Product To Store
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {products.map((prod) => (
+                <div key={prod.id} className="bg-white p-5 rounded-3xl border border-gray-200 shadow-soft flex gap-4 items-center justify-between">
+                  <div className="relative w-20 h-20 bg-brandBg rounded-2xl overflow-hidden shrink-0 border border-gray-200">
+                    <Image src={prod.images[0]} alt={prod.name} fill className="object-cover" />
+                  </div>
+
+                  <div className="flex-1 space-y-1 text-xs">
+                    <span className="text-[10px] font-bold uppercase text-primary bg-primary/10 px-2 py-0.5 rounded">
+                      {prod.category}
+                    </span>
+                    <h3 className="font-heading font-bold text-dark text-sm line-clamp-1">{prod.name}</h3>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="font-bold text-dark font-mono">Price: ₹{prod.price}</span>
+                      <span className="text-gray-400 line-through font-mono text-[11px]">MRP: ₹{prod.mrp}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => updateProduct(prod.id, { stockStatus: prod.stockStatus === 'In Stock' ? 'Low Stock' : 'In Stock' })}
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                          prod.stockStatus === 'In Stock' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {prod.stockStatus} (Click to Toggle)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-col gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        const newPrice = prompt(`Enter new selling price (₹) for ${prod.name}:`, String(prod.price));
+                        if (newPrice && !isNaN(Number(newPrice))) {
+                          updateProduct(prod.id, { price: Number(newPrice) });
+                        }
+                      }}
+                      className="p-2 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-xl transition-colors"
+                      title="Edit Price"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to delete "${prod.name}" from your store?`)) {
+                          deleteProduct(prod.id);
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                      title="Delete Product"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: CUSTOMER DISPATCH TICKETS */}
         {activeTab === 'orders' && (
           <div className="space-y-6">
             {/* Status Filters */}
@@ -147,7 +339,6 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                     key={ord.id}
                     className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-soft hover:shadow-md transition-all space-y-4"
                   >
-                    {/* Header bar of card */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-4">
                       <div className="flex items-center gap-3">
                         <span className="font-mono font-bold text-base text-dark bg-brandBg px-3 py-1 rounded-xl border border-gray-200">
@@ -165,7 +356,6 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                         </span>
                       </div>
 
-                      {/* Status Dropdown */}
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-gray-500 font-semibold">Status:</span>
                         <select
@@ -181,9 +371,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                       </div>
                     </div>
 
-                    {/* Customer Info & Address Box */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-brandBg p-5 rounded-2xl border border-gray-200/80">
-                      {/* Customer Address Details */}
                       <div className="md:col-span-7 space-y-2 text-xs">
                         <h4 className="font-heading font-bold text-sm text-dark flex items-center gap-1.5">
                           <Users className="w-4 h-4 text-primary" /> Customer Shipping Address
@@ -194,15 +382,9 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                           <p><strong className="text-dark">Email:</strong> {ord.email}</p>
                           <p><strong className="text-dark">Full Address:</strong> {ord.address}</p>
                           <p><strong className="text-dark">City / State:</strong> {ord.city}, {ord.state} - <strong className="font-mono text-dark">{ord.pincode}</strong></p>
-                          {ord.gstDetails && (
-                            <p className="text-emerald-800 bg-emerald-50 p-1.5 rounded text-[11px] font-medium mt-1">
-                              <strong>GST Invoicing:</strong> {ord.gstDetails.companyName} (GSTIN: {ord.gstDetails.gstin})
-                            </p>
-                          )}
                         </div>
                       </div>
 
-                      {/* Items Ordered List */}
                       <div className="md:col-span-5 space-y-2 text-xs border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6">
                         <h4 className="font-heading font-bold text-sm text-dark flex items-center gap-1.5">
                           <Package className="w-4 h-4 text-accent" /> Items To Dispatch
@@ -221,10 +403,9 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                       </div>
                     </div>
 
-                    {/* Action Button: Copy formatted text for manual supplier order */}
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
                       <span className="text-[11px] text-gray-400">
-                        Copy this ticket and paste into Roposo Clout, Shiprocket, or SMS.
+                        Copy ticket and paste into Roposo Clout or Shiprocket.
                       </span>
 
                       <button
@@ -237,7 +418,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                       >
                         {copiedId === ord.id ? (
                           <>
-                            <Check className="w-4 h-4" /> Address & Order Copied To Clipboard!
+                            <Check className="w-4 h-4" /> Address & Order Copied!
                           </>
                         ) : (
                           <>
@@ -253,12 +434,12 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           </div>
         )}
 
-        {/* TAB 2: OVERVIEW */}
+        {/* TAB 3: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-soft space-y-2">
-                <span className="text-xs font-semibold text-gray-400">Total Revenue Collected</span>
+                <span className="text-xs font-semibold text-gray-400">Total Revenue</span>
                 <div className="font-heading font-bold text-3xl text-dark">₹{totalRevenue}</div>
               </div>
               <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-soft space-y-2">
@@ -274,27 +455,114 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
             </div>
           </div>
         )}
-
-        {/* TAB 3: INVENTORY */}
-        {activeTab === 'inventory' && (
-          <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-soft space-y-4">
-            <h2 className="font-heading font-bold text-lg text-dark">Active SKUs ({PRODUCTS.length})</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              {PRODUCTS.map((prod) => (
-                <div key={prod.id} className="p-4 bg-brandBg rounded-2xl border border-gray-200 flex justify-between items-center">
-                  <div>
-                    <h4 className="font-semibold text-dark">{prod.name}</h4>
-                    <span className="font-bold text-primary">₹{prod.price}</span>
-                  </div>
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full">
-                    {prod.stockStatus}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* ADD REAL PRODUCT MODAL */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+          <div onClick={() => setShowAddModal(false)} className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-2xl z-10 space-y-4 animate-slide-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <h3 className="font-heading font-bold text-lg text-dark">Add Real Product To Store</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-dark">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProduct} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-dark block mb-1">Product Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Expandable Wooden Spice Rack"
+                  value={newProdName}
+                  onChange={(e) => setNewProdName(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-dark block mb-1">Tagline</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Moisture-sealed bamboo organizer"
+                  value={newProdTagline}
+                  onChange={(e) => setNewProdTagline(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-dark block mb-1">Room Category</label>
+                  <select
+                    value={newProdCategory}
+                    onChange={(e) => setNewProdCategory(e.target.value as any)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                  >
+                    <option value="Kitchen">Kitchen</option>
+                    <option value="Storage">Storage</option>
+                    <option value="Bathroom">Bathroom</option>
+                    <option value="Laundry">Laundry</option>
+                    <option value="Living">Living</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-dark block mb-1">Material</label>
+                  <input
+                    type="text"
+                    value={newProdMaterial}
+                    onChange={(e) => setNewProdMaterial(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-dark block mb-1">Selling Price (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={newProdPrice}
+                    onChange={(e) => setNewProdPrice(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-dark block mb-1">MRP Price (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    value={newProdMrp}
+                    onChange={(e) => setNewProdMrp(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-dark block mb-1">Image URL (Unsplash or Direct Link) *</label>
+                <input
+                  type="url"
+                  required
+                  value={newProdImg1}
+                  onChange={(e) => setNewProdImg1(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary-dark text-white font-heading font-semibold py-3 rounded-2xl transition-colors shadow-md text-xs mt-2"
+              >
+                Publish Product To Store Catalog
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

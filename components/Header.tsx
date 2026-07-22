@@ -10,7 +10,7 @@ export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
-  const { cart, wishlist, setIsCartOpen, setIsSearchOpen } = useStore();
+  const { cart, wishlist, setIsCartOpen, setIsSearchOpen, setIsAuthOpen, currentUser } = useStore();
   const pathname = usePathname();
 
   const isHome = pathname === '/';
@@ -137,7 +137,7 @@ export const Header = () => {
         </nav>
 
         {/* Right Icon Actions */}
-        <div className="flex items-center space-x-3 sm:space-x-5">
+        <div className="flex items-center space-x-3 sm:space-x-4">
           {/* Instant Search Launcher */}
           <button
             onClick={() => setIsSearchOpen(true)}
@@ -145,6 +145,20 @@ export const Header = () => {
             title="Search Products"
           >
             <Search className="w-5 h-5" />
+          </button>
+
+          {/* User Account / Auth Modal Launcher */}
+          <button
+            onClick={() => setIsAuthOpen(true)}
+            className="p-2 text-dark hover:text-primary hover:bg-secondary rounded-full transition-colors relative flex items-center gap-1"
+            title={currentUser ? `Account: ${currentUser.name}` : 'Sign In'}
+          >
+            <User className="w-5 h-5" />
+            {currentUser && (
+              <span className="hidden sm:inline text-xs font-bold text-primary max-w-[80px] truncate">
+                {currentUser.name}
+              </span>
+            )}
           </button>
 
           {/* Wishlist Icon */}
@@ -191,6 +205,15 @@ export const Header = () => {
       {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-x-0 top-full bg-white border-b border-gray-200 p-6 space-y-4 shadow-xl z-50">
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setIsAuthOpen(true);
+            }}
+            className="w-full text-left py-2 text-primary font-bold border-b border-gray-100 flex items-center gap-2"
+          >
+            <User className="w-4 h-4" /> {currentUser ? `Hi, ${currentUser.name}` : 'Sign In / Register'}
+          </button>
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
@@ -206,39 +229,11 @@ export const Header = () => {
             Shop All Products
           </Link>
           <Link
-            href="/shop?category=Kitchen"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-gray-600 pl-4 border-b border-gray-100 text-sm"
-          >
-            • Kitchen & Spice Storage
-          </Link>
-          <Link
-            href="/shop?category=Bathroom"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-gray-600 pl-4 border-b border-gray-100 text-sm"
-          >
-            • Bathroom Racks
-          </Link>
-          <Link
-            href="/shop?category=Laundry"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-gray-600 pl-4 border-b border-gray-100 text-sm"
-          >
-            • Laundry & Living
-          </Link>
-          <Link
             href="/blog"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-dark font-medium border-b border-gray-100"
           >
             Organization Guides & Hacks
-          </Link>
-          <Link
-            href="/about"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-dark font-medium border-b border-gray-100"
-          >
-            About GharCraft
           </Link>
           <Link
             href="/track-order"

@@ -9,6 +9,7 @@ import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { SearchModal } from '@/components/SearchModal';
 import { QuickViewModal } from '@/components/QuickViewModal';
+import { AuthModal } from '@/components/AuthModal';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -61,6 +62,7 @@ export default function RootLayout({
           <CartDrawer />
           <SearchModal />
           <QuickViewModal />
+          <AuthModal />
         </StoreProvider>
       </body>
     </html>
