@@ -100,7 +100,7 @@ interface StoreContextType {
 
   // Site Banners & Content Management
   siteContent: SiteContent;
-  updateSiteContent: (newContent: Partial<SiteContent>) => void;
+  updateSiteContent: (newContent: Partial<SiteContent>) => Promise<void>;
 
   // Cart & Wishlist
   cart: CartItem[];
@@ -198,8 +198,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsSupabaseConnected(isConfigured);
 
     const initData = async () => {
-      // Fetch Products from Supabase DB
+      // 1. Fetch Site Content (Merchant UPI ID & Banners) from Supabase DB
       if (isConfigured) {
+        try {
+          const { data: scData } = await supabase.from('site_content').select('*').eq('id', 'main').single();
+          if (scData && scData.content) {
+            setSiteContent((prev) => ({ ...prev, ...scData.content }));
+          }
+        } catch (err) {
+          console.log('Using local site content fallback', err);
+        }
+
+        // 2. Fetch Products from Supabase DB
         try {
           const { data } = await supabase.from('products').select('*');
           if (data && data.length > 0) {
@@ -225,7 +235,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           console.log('Using default product catalog', err);
         }
 
-        // Fetch Orders from Supabase DB
+        // 3. Fetch Orders from Supabase DB
         try {
           const { data: orderData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
           if (orderData && orderData.length > 0) {
@@ -327,16 +337,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
-  const updateSiteContent = (newContent: Partial<SiteContent>) => {
-    setSiteContent((prev) => {
-      const updated = { ...prev, ...newContent };
+  const updateSiteContent = async (newContent: Partial<SiteContent>) => {
+    const updated = { ...siteContent, ...newContent };
+    setSiteContent(updated);
+
+    try {
+      localStorage.setItem('gharcraft_site_content', JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (isSupabaseConnected) {
       try {
-        localStorage.setItem('gharcraft_site_content', JSON.stringify(updated));
+        await supabase.from('site_content').upsert({
+          id: 'main',
+          content: updated,
+          updated_at: new Date().toISOString(),
+        });
       } catch (e) {
-        console.error(e);
+        console.error('Supabase site_content update error', e);
       }
-      return updated;
-    });
+    }
   };
 
   const saveCartToStorage = (updatedCart: CartItem[]) => {

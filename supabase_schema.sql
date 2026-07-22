@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   state TEXT,
   items JSONB NOT NULL,
   payment_method TEXT NOT NULL,
+  upi_utr TEXT,
   subtotal NUMERIC NOT NULL,
   discount_amount NUMERIC DEFAULT 0,
   shipping_fee NUMERIC DEFAULT 0,
@@ -43,25 +44,18 @@ CREATE TABLE IF NOT EXISTS public.orders (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- 3. Create Users / Customers Table
-CREATE TABLE IF NOT EXISTS public.users (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  phone TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+-- 3. Create Site Content / Settings Table (For Merchant UPI ID & Banners)
+CREATE TABLE IF NOT EXISTS public.site_content (
+  id TEXT PRIMARY KEY DEFAULT 'main',
+  content JSONB NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
 -- 4. Enable Public Read/Write Row Level Security (RLS) Policies
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_content ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read access to products" ON public.products FOR SELECT USING (true);
-CREATE POLICY "Allow public insert/update access to products" ON public.products FOR ALL USING (true);
-
-CREATE POLICY "Allow public read access to orders" ON public.orders FOR SELECT USING (true);
-CREATE POLICY "Allow public insert/update access to orders" ON public.orders FOR ALL USING (true);
-
-CREATE POLICY "Allow public read access to users" ON public.users FOR SELECT USING (true);
-CREATE POLICY "Allow public insert access to users" ON public.users FOR ALL USING (true);
+CREATE POLICY "Allow public access to products" ON public.products FOR ALL USING (true);
+CREATE POLICY "Allow public access to orders" ON public.orders FOR ALL USING (true);
+CREATE POLICY "Allow public access to site_content" ON public.site_content FOR ALL USING (true);
