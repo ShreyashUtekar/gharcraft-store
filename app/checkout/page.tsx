@@ -9,13 +9,13 @@ import { useStore, CustomerOrder } from '@/context/StoreContext';
 export default function CheckoutPage() {
   const { cart, subtotal, discountAmount, shippingFee, grandTotal, appliedCoupon, clearCart, addOrder, currentUser } = useStore();
 
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'cod' | 'card' | 'netbanking'>('upi');
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
   const [upiApp, setUpiApp] = useState<'gpay' | 'phonepe' | 'paytm'>('gpay');
   const [needGst, setNeedGst] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<CustomerOrder | null>(null);
 
-  // Form State initialized clean (uses currentUser if logged in)
+  // Form State initialized clean
   const [formData, setFormData] = useState({
     fullName: currentUser?.name || '',
     phone: currentUser?.phone || '',
@@ -83,7 +83,7 @@ export default function CheckoutPage() {
 
           <div>
             <span className="text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-3 py-1 rounded-full">
-              Order Confirmed & Placed
+              Prepaid Order Confirmed
             </span>
             <h1 className="font-heading font-bold text-2xl sm:text-3xl text-dark mt-3">
               Thank You, {createdOrder.customerName}!
@@ -100,7 +100,7 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500">Payment Method:</span>
-              <strong className="uppercase text-dark">{createdOrder.paymentMethod}</strong>
+              <strong className="uppercase text-dark">{createdOrder.paymentMethod} (Paid)</strong>
             </div>
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500">Estimated Delivery:</span>
@@ -130,7 +130,7 @@ export default function CheckoutPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary">Fast & Secure</span>
-          <h1 className="font-heading font-bold text-3xl text-dark mt-1">Checkout</h1>
+          <h1 className="font-heading font-bold text-3xl text-dark mt-1">Prepaid Checkout</h1>
         </div>
 
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -244,11 +244,11 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Step 2: Payment Method */}
+            {/* Step 2: Payment Method (Prepaid Only) */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/80 shadow-soft space-y-4">
               <h2 className="font-heading font-bold text-lg text-dark flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">2</span>
-                Payment Options (Indian Gateway)
+                Prepaid Payment Gateways
               </h2>
 
               <div className="space-y-3">
@@ -263,11 +263,11 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-3">
                       <QrCode className="w-5 h-5 text-primary" />
                       <div>
-                        <h4 className="font-heading font-semibold text-xs text-dark">UPI Instant Payment</h4>
+                        <h4 className="font-heading font-semibold text-xs text-dark">UPI Instant Payment (Extra 5% OFF)</h4>
                         <p className="text-[10px] text-gray-500">Google Pay, PhonePe, Paytm, BHIM</p>
                       </div>
                     </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Fastest</span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Fastest & Preferred</span>
                   </div>
 
                   {paymentMethod === 'upi' && (
@@ -298,22 +298,6 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {/* COD */}
-                <div
-                  onClick={() => setPaymentMethod('cod')}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                    paymentMethod === 'cod' ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Banknote className="w-5 h-5 text-primary" />
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs text-dark">Cash On Delivery (COD)</h4>
-                      <p className="text-[10px] text-gray-500">Pay cash or scan QR at your doorstep upon arrival</p>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Cards */}
                 <div
                   onClick={() => setPaymentMethod('card')}
@@ -326,6 +310,22 @@ export default function CheckoutPage() {
                     <div>
                       <h4 className="font-heading font-semibold text-xs text-dark">Credit / Debit Card (Razorpay)</h4>
                       <p className="text-[10px] text-gray-500">Visa, Mastercard, RuPay, Diners Club</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* NetBanking */}
+                <div
+                  onClick={() => setPaymentMethod('netbanking')}
+                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                    paymentMethod === 'netbanking' ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-5 h-5 text-primary" />
+                    <div>
+                      <h4 className="font-heading font-semibold text-xs text-dark">Net Banking</h4>
+                      <p className="text-[10px] text-gray-500">HDFC, ICICI, SBI, Axis, Kotak</p>
                     </div>
                   </div>
                 </div>
@@ -380,7 +380,7 @@ export default function CheckoutPage() {
                 type="submit"
                 className="w-full bg-primary hover:bg-primary-dark text-white font-heading font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-float transition-all duration-300 transform active:scale-95 text-sm"
               >
-                Place Order Now <ArrowRight className="w-4 h-4" />
+                Pay & Place Order Now <ArrowRight className="w-4 h-4" />
               </button>
 
               <div className="flex items-center justify-center gap-2 text-[10px] text-gray-400">

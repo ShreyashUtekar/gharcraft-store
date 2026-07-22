@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, PRODUCTS as DEFAULT_PRODUCTS } from '@/data/products';
+import { BLOG_POSTS as DEFAULT_BLOGS, BlogPost } from '@/data/blogs';
 import { supabase } from '@/lib/supabase';
 
 export interface CartItem {
@@ -33,7 +34,7 @@ export interface CustomerOrder {
     color?: string;
     price: number;
   }[];
-  paymentMethod: 'upi' | 'cod' | 'card' | 'netbanking';
+  paymentMethod: 'upi' | 'card' | 'netbanking';
   subtotal: number;
   discountAmount: number;
   shippingFee: number;
@@ -86,6 +87,12 @@ interface StoreContextType {
   updateProduct: (id: string, updatedFields: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
 
+  // Guides & Hacks (Blogs) Management
+  blogs: BlogPost[];
+  addBlogPost: (newBlog: Omit<BlogPost, 'id' | 'date'>) => void;
+  updateBlogPost: (id: string, updatedFields: Partial<BlogPost>) => void;
+  deleteBlogPost: (id: string) => void;
+
   // Site Banners & Content Management
   siteContent: SiteContent;
   updateSiteContent: (newContent: Partial<SiteContent>) => void;
@@ -116,7 +123,7 @@ interface StoreContextType {
   applyCoupon: (code: string) => boolean;
   removeCoupon: () => void;
   pincode: string;
-  pincodeInfo: { isCod: boolean; days: number; location: string } | null;
+  pincodeInfo: { days: number; location: string } | null;
   checkPincode: (code: string) => void;
   isGstInvoice: boolean;
   setIsGstInvoice: (val: boolean) => void;
@@ -152,6 +159,7 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
+  const [blogs, setBlogs] = useState<BlogPost[]>(DEFAULT_BLOGS);
   const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -163,8 +171,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [pincode, setPincode] = useState<string>('110001');
-  const [pincodeInfo, setPincodeInfo] = useState<{ isCod: boolean; days: number; location: string } | null>({
-    isCod: true,
+  const [pincodeInfo, setPincodeInfo] = useState<{ days: number; location: string } | null>({
     days: 3,
     location: 'Delhi Metro',
   });
@@ -177,7 +184,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
 
-  // Orders initialized clean (no dummy data)
+  // Orders initialized clean
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
 
   // Initial Load from Supabase DB or fallback to LocalStorage
@@ -186,7 +193,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsSupabaseConnected(isConfigured);
 
     const initData = async () => {
-      // 1. Fetch Products from Supabase DB
+      // Fetch Products from Supabase DB
       if (isConfigured) {
         try {
           const { data } = await supabase.from('products').select('*');
@@ -213,7 +220,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           console.log('Using default product catalog', err);
         }
 
-        // 2. Fetch Orders from Supabase DB
+        // Fetch Orders from Supabase DB
         try {
           const { data: orderData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
           if (orderData && orderData.length > 0) {
@@ -228,7 +235,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               city: o.city || '',
               state: o.state || '',
               items: o.items || [],
-              paymentMethod: o.payment_method || 'upi',
+              paymentMethod: o.payment_method === 'cod' ? 'upi' : (o.payment_method || 'upi'),
               subtotal: Number(o.subtotal || o.total_amount),
               discountAmount: Number(o.discount_amount || 0),
               shippingFee: Number(o.shipping_fee || 0),
@@ -245,10 +252,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // Fallback Local Storage Sync
       try {
+        const savedBlogs = localStorage.getItem('gharcraft_blogs');
+        if (savedBlogs) setBlogs(JSON.parse(savedBlogs));
+
         const savedSiteContent = localStorage.getItem('gharcraft_site_content');
-        if (savedSiteContent) {
-          setSiteContent(JSON.parse(savedSiteContent));
-        }
+        if (savedSiteContent) setSiteContent(JSON.parse(savedSiteContent));
 
         const savedCart = localStorage.getItem('gharcraft_cart');
         if (savedCart) setCart(JSON.parse(savedCart));
@@ -271,6 +279,47 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     initData();
   }, []);
+
+  // Blog Management Functions
+  const addBlogPost = (newBlog: Omit<BlogPost, 'id' | 'date'>) => {
+    const id = `guide-${Date.now()}`;
+    const date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const fullBlog: BlogPost = { ...newBlog, id, date };
+
+    setBlogs((prev) => {
+      const updated = [fullBlog, ...prev];
+      try {
+        localStorage.setItem('gharcraft_blogs', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  const updateBlogPost = (id: string, updatedFields: Partial<BlogPost>) => {
+    setBlogs((prev) => {
+      const updated = prev.map((b) => (b.id === id ? { ...b, ...updatedFields } : b));
+      try {
+        localStorage.setItem('gharcraft_blogs', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  const deleteBlogPost = (id: string) => {
+    setBlogs((prev) => {
+      const updated = prev.filter((b) => b.id !== id);
+      try {
+        localStorage.setItem('gharcraft_blogs', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
 
   const updateSiteContent = (newContent: Partial<SiteContent>) => {
     setSiteContent((prev) => {
@@ -562,7 +611,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         '8': 'Bihar / Jharkhand',
       };
       setPincodeInfo({
-        isCod: true,
         days: firstDigit === '1' || firstDigit === '4' || firstDigit === '5' ? 2 : 4,
         location: cityMap[firstDigit] || 'Pan-India',
       });
@@ -590,6 +638,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addProduct,
         updateProduct,
         deleteProduct,
+        blogs,
+        addBlogPost,
+        updateBlogPost,
+        deleteBlogPost,
         siteContent,
         updateSiteContent,
         cart,

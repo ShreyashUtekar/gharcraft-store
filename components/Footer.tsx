@@ -34,8 +34,8 @@ export const Footer = () => {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-heading font-semibold text-sm">COD Available</h4>
-            <p className="text-xs text-gray-400">Pay safely at your doorstep</p>
+            <h4 className="font-heading font-semibold text-sm">Encrypted Payments</h4>
+            <p className="text-xs text-gray-400">100% Buyer Protection</p>
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export const Footer = () => {
             <span className="px-2.5 py-1 bg-white/10 rounded-md font-mono">Paytm</span>
             <span className="px-2.5 py-1 bg-white/10 rounded-md font-mono">Razorpay</span>
             <span className="px-2.5 py-1 bg-white/10 rounded-md font-mono">Visa / MC</span>
-            <span className="px-2.5 py-1 bg-white/10 rounded-md font-mono">COD</span>
+            <span className="px-2.5 py-1 bg-white/10 rounded-md font-mono">NetBanking</span>
           </div>
           <div className="mt-6 pt-4 border-t border-white/10 text-xs text-gray-400">
             <p><strong>Customer Support:</strong></p>

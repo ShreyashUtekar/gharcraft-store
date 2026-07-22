@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sparkles, DollarSign, ShoppingBag, Users, Tag, Package, ArrowUpRight, CheckCircle2, Clock, Truck, Edit3, Copy, Download, FileSpreadsheet, Check, Lock, Plus, Trash2, X, RefreshCw, LogOut, Image as ImageIcon, Layout, Save } from 'lucide-react';
+import { Sparkles, DollarSign, ShoppingBag, Users, Tag, Package, ArrowUpRight, CheckCircle2, Clock, Truck, Edit3, Copy, Download, FileSpreadsheet, Check, Lock, Plus, Trash2, X, RefreshCw, LogOut, Image as ImageIcon, Layout, Save, BookOpen } from 'lucide-react';
 import { Product } from '@/data/products';
 import { useStore, CustomerOrder } from '@/context/StoreContext';
 
@@ -13,6 +13,10 @@ export default function AdminPage() {
     addProduct,
     updateProduct,
     deleteProduct,
+    blogs,
+    addBlogPost,
+    updateBlogPost,
+    deleteBlogPost,
     siteContent,
     updateSiteContent,
     orders,
@@ -25,7 +29,7 @@ export default function AdminPage() {
   const [passwordInput, setPasswordInput] = useState('');
   const [passError, setPassError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'banners' | 'inventory' | 'orders' | 'overview'>('banners');
+  const [activeTab, setActiveTab] = useState<'guides' | 'banners' | 'inventory' | 'orders' | 'overview'>('guides');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('All');
 
@@ -44,6 +48,16 @@ export default function AdminPage() {
   const [newProdImg1, setNewProdImg1] = useState('https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?q=80&w=1000&auto=format&fit=crop');
   const [newProdDescription, setNewProdDescription] = useState('Premium space-saving home organizer engineered for modern Indian living.');
   const [newProdFeatures, setNewProdFeatures] = useState('BPA-Free, Moisture Proof Seal, Easy to Clean');
+
+  // Add Guide Modal State
+  const [showAddGuideModal, setShowAddGuideModal] = useState(false);
+  const [guideTitle, setGuideTitle] = useState('');
+  const [guideCategory, setGuideCategory] = useState('Kitchen Organization');
+  const [guideExcerpt, setGuideExcerpt] = useState('');
+  const [guideContent, setGuideContent] = useState('');
+  const [guideImage, setGuideImage] = useState('https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=1000&auto=format&fit=crop');
+  const [guideAuthor, setGuideAuthor] = useState('Senior Home Stylist');
+  const [guideReadTime, setGuideReadTime] = useState('4 min read');
 
   const handleAdminAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +102,26 @@ export default function AdminPage() {
     setShowAddModal(false);
     setNewProdName('');
     setNewProdTagline('');
+  };
+
+  const handleCreateGuide = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!guideTitle || !guideContent) return;
+
+    addBlogPost({
+      title: guideTitle,
+      category: guideCategory,
+      excerpt: guideExcerpt || guideContent.slice(0, 100),
+      content: guideContent,
+      image: guideImage,
+      author: guideAuthor,
+      readTime: guideReadTime,
+    });
+
+    setShowAddGuideModal(false);
+    setGuideTitle('');
+    setGuideExcerpt('');
+    setGuideContent('');
   };
 
   const copyDispatchTicket = (ord: CustomerOrder) => {
@@ -147,7 +181,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
               Protected Merchant Access
             </span>
             <h1 className="font-heading font-bold text-2xl text-dark mt-2">GharCraft Admin Portal</h1>
-            <p className="text-xs text-gray-500 mt-1">Enter your merchant password to manage website images, headlines, products, and orders.</p>
+            <p className="text-xs text-gray-500 mt-1">Enter your merchant password to manage guides, banners, products, and orders.</p>
           </div>
 
           <form onSubmit={handleAdminAuthSubmit} className="space-y-4 text-xs text-left">
@@ -192,13 +226,19 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           <div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Merchant Portal (Hidden From Public)</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Merchant Operations Portal</span>
             </div>
             <h1 className="font-heading font-bold text-2xl sm:text-3xl mt-1">GharCraft Control Center</h1>
-            <p className="text-xs text-gray-400 mt-1">Edit all site images/banners, manage store products, and dispatch customer tickets.</p>
+            <p className="text-xs text-gray-400 mt-1">Add/Edit Guides & Hacks, site banners, real products, and dispatch customer tickets.</p>
           </div>
 
           <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setShowAddGuideModal(true)}
+              className="bg-accent hover:bg-accent-hover text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> Add Guide & Hack
+            </button>
             <button
               onClick={() => setShowAddModal(true)}
               className="bg-primary hover:bg-primary-dark text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
@@ -223,6 +263,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
         {/* Navigation Tabs */}
         <div className="flex gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
           {[
+            { id: 'guides', label: `Organization Guides & Hacks (${blogs.length})` },
             { id: 'banners', label: 'Site Banners & Images Editor' },
             { id: 'inventory', label: `Product Catalog (${products.length})` },
             { id: 'orders', label: `Customer Dispatch Tickets (${orders.length})` },
@@ -242,7 +283,62 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           ))}
         </div>
 
-        {/* TAB 1: SITE BANNERS & IMAGES EDITOR */}
+        {/* TAB 1: GUIDES & HACKS MANAGER (BLOG POSTS) */}
+        {activeTab === 'guides' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs">
+              <span className="font-bold text-dark text-sm">Published Home Guides & Hacks ({blogs.length})</span>
+              <button
+                onClick={() => setShowAddGuideModal(true)}
+                className="bg-accent hover:bg-accent-hover text-white font-semibold px-4 py-2 rounded-xl flex items-center gap-1 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Write New Guide & Hack
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {blogs.map((b) => (
+                <div key={b.id} className="bg-white p-6 rounded-3xl border border-gray-200 shadow-soft flex flex-col justify-between space-y-4">
+                  <div className="flex gap-4">
+                    <div className="relative w-24 h-24 bg-brandBg rounded-2xl overflow-hidden shrink-0 border border-gray-200">
+                      <Image src={b.image} alt={b.title} fill className="object-cover" />
+                    </div>
+                    <div className="flex-1 space-y-1 text-xs">
+                      <span className="text-[10px] font-bold uppercase text-accent bg-accent/10 px-2.5 py-0.5 rounded">
+                        {b.category}
+                      </span>
+                      <h3 className="font-heading font-bold text-dark text-sm leading-snug">{b.title}</h3>
+                      <p className="text-[11px] text-gray-500 line-clamp-2">{b.excerpt}</p>
+                      <span className="text-[10px] text-gray-400 block pt-1">{b.date} • {b.readTime} by {b.author}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-xs">
+                    <button
+                      onClick={() => {
+                        const newTitle = prompt('Edit Guide Title:', b.title);
+                        if (newTitle) updateBlogPost(b.id, { title: newTitle });
+                      }}
+                      className="text-primary font-semibold hover:underline flex items-center gap-1"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" /> Quick Edit Title
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete guide "${b.title}"?`)) deleteBlogPost(b.id);
+                      }}
+                      className="text-red-500 hover:text-red-700 font-semibold p-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: SITE BANNERS & IMAGES EDITOR */}
         {activeTab === 'banners' && (
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-soft space-y-6">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4">
@@ -261,7 +357,6 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
             </div>
 
             <form onSubmit={handleSaveBanners} className="space-y-6 text-xs">
-              {/* Section A: Hero Banner */}
               <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
                 <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
                   <Layout className="w-4 h-4 text-primary" /> 1. Homepage Hero Banner & Headlines
@@ -300,7 +395,6 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                 </div>
               </div>
 
-              {/* Section B: About Us Page Image */}
               <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
                 <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-accent" /> 2. About Us Brand Story Image
@@ -317,7 +411,6 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                 </div>
               </div>
 
-              {/* Section C: Shop By Room Category Images */}
               <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
                 <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
                   <Package className="w-4 h-4 text-amber-600" /> 3. Room Category Card Images
@@ -376,7 +469,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           </div>
         )}
 
-        {/* TAB 2: PRODUCT CATALOG & INVENTORY MANAGEMENT */}
+        {/* TAB 3: PRODUCT CATALOG */}
         {activeTab === 'inventory' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs">
@@ -419,7 +512,6 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex flex-col gap-2 shrink-0">
                     <button
                       onClick={() => {
@@ -451,10 +543,9 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           </div>
         )}
 
-        {/* TAB 3: CUSTOMER DISPATCH TICKETS */}
+        {/* TAB 4: CUSTOMER DISPATCH TICKETS */}
         {activeTab === 'orders' && (
           <div className="space-y-6">
-            {/* Status Filters */}
             <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-500">Filter Status:</span>
@@ -474,7 +565,6 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
               <span className="text-gray-400 font-mono">Showing {filteredOrders.length} orders</span>
             </div>
 
-            {/* Orders Dispatch Cards List */}
             {filteredOrders.length === 0 ? (
               <div className="bg-white p-12 rounded-3xl border border-gray-200 text-center text-xs text-gray-500">
                 No orders match filter "{statusFilter}". Customer orders placed on checkout will appear here!
@@ -492,13 +582,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                           {ord.id}
                         </span>
                         <span className="text-xs text-gray-400">{ord.date}</span>
-                        <span
-                          className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            ord.paymentMethod === 'cod'
-                              ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                              : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                          }`}
-                        >
+                        <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-900 border border-emerald-200">
                           Payment: {ord.paymentMethod.toUpperCase()} (₹{ord.totalAmount})
                         </span>
                       </div>
@@ -581,7 +665,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           </div>
         )}
 
-        {/* TAB 4: OVERVIEW */}
+        {/* TAB 5: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -705,6 +789,98 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                 className="w-full bg-primary hover:bg-primary-dark text-white font-heading font-semibold py-3 rounded-2xl transition-colors shadow-md text-xs mt-2"
               >
                 Publish Product To Store Catalog
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD GUIDE & HACK MODAL */}
+      {showAddGuideModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+          <div onClick={() => setShowAddGuideModal(false)} className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-2xl z-10 space-y-4 animate-slide-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <h3 className="font-heading font-bold text-lg text-dark">Add New Home Guide & Hack</h3>
+              <button onClick={() => setShowAddGuideModal(false)} className="text-gray-400 hover:text-dark">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateGuide} className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-dark block mb-1">Guide Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 5 Secrets to an Organized Indian Kitchen Pantry"
+                  value={guideTitle}
+                  onChange={(e) => setGuideTitle(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-dark block mb-1">Category</label>
+                  <input
+                    type="text"
+                    value={guideCategory}
+                    onChange={(e) => setGuideCategory(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-dark block mb-1">Read Time</label>
+                  <input
+                    type="text"
+                    value={guideReadTime}
+                    onChange={(e) => setGuideReadTime(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-dark block mb-1">Short Excerpt *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Brief 1-sentence summary"
+                  value={guideExcerpt}
+                  onChange={(e) => setGuideExcerpt(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-dark block mb-1">Feature Image URL *</label>
+                <input
+                  type="url"
+                  required
+                  value={guideImage}
+                  onChange={(e) => setGuideImage(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-dark block mb-1">Full Guide Content *</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Write full article body..."
+                  value={guideContent}
+                  onChange={(e) => setGuideContent(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-primary"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-accent hover:bg-accent-hover text-white font-heading font-semibold py-3 rounded-2xl transition-colors shadow-md text-xs mt-2"
+              >
+                Publish Guide & Hack
               </button>
             </form>
           </div>

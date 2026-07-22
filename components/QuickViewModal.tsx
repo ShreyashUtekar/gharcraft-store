@@ -141,7 +141,7 @@ export const QuickViewModal = () => {
                 </form>
                 {pincodeInfo && (
                   <p className="text-[11px] text-emerald-700 font-medium mt-2 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" /> Delivered in {pincodeInfo.days} days to {pincodeInfo.location}. COD Available!
+                    <ShieldCheck className="w-3.5 h-3.5" /> Express Delivery in {pincodeInfo.days} days to {pincodeInfo.location}. 100% Encrypted Payment!
                   </p>
                 )}
               </div>

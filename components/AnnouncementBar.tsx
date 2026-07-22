@@ -7,7 +7,7 @@ const ANNOUNCEMENTS = [
   { icon: Truck, text: '🚚 Free Shipping Above ₹999 across 19,000+ Indian Pincodes' },
   { icon: Star, text: '⭐ 100,000+ Happy Indian Homes Organized & Transformed' },
   { icon: RotateCcw, text: '🔄 Easy 7-Day Doorstep Returns & Instant Refunds' },
-  { icon: ShieldCheck, text: '💵 Cash On Delivery (COD) & UPI Extra 5% OFF Available' },
+  { icon: ShieldCheck, text: '⚡ Extra 5% OFF on Prepaid Instant UPI Orders' },
 ];
 
 export const AnnouncementBar = () => {
