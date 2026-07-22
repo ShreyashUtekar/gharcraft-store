@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, PRODUCTS as DEFAULT_PRODUCTS } from '@/data/products';
+import { supabase } from '@/lib/supabase';
 
 export interface CartItem {
   product: Product;
@@ -59,9 +60,9 @@ const VALID_COUPONS: Record<string, Coupon> = {
 interface StoreContextType {
   // Products Management
   products: Product[];
-  addProduct: (newProduct: Omit<Product, 'id'>) => void;
-  updateProduct: (id: string, updatedFields: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (newProduct: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (id: string, updatedFields: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 
   // Cart & Wishlist
   cart: CartItem[];
@@ -113,11 +114,12 @@ interface StoreContextType {
 
   // Orders
   orders: CustomerOrder[];
-  addOrder: (order: CustomerOrder) => void;
-  updateOrderStatus: (orderId: string, status: CustomerOrder['status']) => void;
+  addOrder: (order: CustomerOrder) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: CustomerOrder['status']) => Promise<void>;
 
   recentlyViewed: Product[];
   addRecentlyViewed: (product: Product) => void;
+  isSupabaseConnected: boolean;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -146,83 +148,96 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // User Auth & Admin Auth
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
 
   // Orders
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
 
-  // Load Persisted Session & Data from LocalStorage on mount
+  // Initial Load from Supabase DB or fallback to LocalStorage
   useEffect(() => {
-    try {
-      // Products
-      const savedProducts = localStorage.getItem('gharcraft_products');
-      if (savedProducts) {
-        setProducts(JSON.parse(savedProducts));
+    const isConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL.includes('supabase.co');
+    setIsSupabaseConnected(isConfigured);
+
+    const initData = async () => {
+      // 1. Fetch Products from Supabase DB
+      if (isConfigured) {
+        try {
+          const { data, error } = await supabase.from('products').select('*');
+          if (data && data.length > 0) {
+            const formatted: Product[] = data.map((d: any) => ({
+              id: d.id,
+              name: d.name,
+              tagline: d.tagline || 'Smart home organizer',
+              category: d.category,
+              price: Number(d.price),
+              mrp: Number(d.mrp),
+              rating: Number(d.rating || 4.9),
+              reviewsCount: Number(d.reviews_count || 10),
+              images: Array.isArray(d.images) ? d.images : [d.images],
+              stockStatus: d.stock_status || 'In Stock',
+              description: d.description || '',
+              features: d.features || ['BPA-Free', 'Durable'],
+              specifications: d.specifications || { Material: d.material || 'Premium' },
+              material: d.material || 'Premium',
+            }));
+            setProducts(formatted);
+          }
+        } catch (err) {
+          console.log('Using default product catalog', err);
+        }
+
+        // 2. Fetch Orders from Supabase DB
+        try {
+          const { data: orderData } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+          if (orderData && orderData.length > 0) {
+            const formattedOrders: CustomerOrder[] = orderData.map((o: any) => ({
+              id: o.id,
+              date: new Date(o.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+              customerName: o.customer_name,
+              phone: o.customer_phone,
+              email: o.customer_email || 'customer@example.com',
+              address: o.address,
+              pincode: o.pincode,
+              city: o.city || 'India',
+              state: o.state || 'India',
+              items: o.items || [],
+              paymentMethod: o.payment_method || 'upi',
+              subtotal: Number(o.subtotal || o.total_amount),
+              discountAmount: Number(o.discount_amount || 0),
+              shippingFee: Number(o.shipping_fee || 0),
+              totalAmount: Number(o.total_amount),
+              status: o.status || 'Processing',
+              gstDetails: o.gst_details,
+            }));
+            setOrders(formattedOrders);
+          }
+        } catch (err) {
+          console.log('Using local orders state', err);
+        }
       }
 
-      // Cart
-      const savedCart = localStorage.getItem('gharcraft_cart');
-      if (savedCart) {
-        setCart(JSON.parse(savedCart));
-      } else {
-        setCart([
-          { product: DEFAULT_PRODUCTS[0], quantity: 1, selectedColor: 'Natural Bamboo' },
-          { product: DEFAULT_PRODUCTS[1], quantity: 1, selectedColor: 'Nordic White' },
-        ]);
-      }
+      // Fallback Local Storage Sync
+      try {
+        const savedCart = localStorage.getItem('gharcraft_cart');
+        if (savedCart) setCart(JSON.parse(savedCart));
+        else setCart([{ product: DEFAULT_PRODUCTS[0], quantity: 1, selectedColor: 'Natural Bamboo' }, { product: DEFAULT_PRODUCTS[1], quantity: 1, selectedColor: 'Nordic White' }]);
 
-      // Wishlist
-      const savedWishlist = localStorage.getItem('gharcraft_wishlist');
-      if (savedWishlist) {
-        setWishlist(JSON.parse(savedWishlist));
-      }
+        const savedWishlist = localStorage.getItem('gharcraft_wishlist');
+        if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
 
-      // User Session
-      const savedUser = localStorage.getItem('gharcraft_session_user');
-      if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
-      }
+        const savedUser = localStorage.getItem('gharcraft_session_user');
+        if (savedUser) setCurrentUser(JSON.parse(savedUser));
 
-      // Admin Auth Session
-      const savedAdminAuth = localStorage.getItem('gharcraft_admin_auth');
-      if (savedAdminAuth === 'true') {
-        setIsAdminAuthenticated(true);
+        const savedAdminAuth = localStorage.getItem('gharcraft_admin_auth');
+        if (savedAdminAuth === 'true') setIsAdminAuthenticated(true);
+      } catch (e) {
+        console.error(e);
       }
+    };
 
-      // Orders
-      const savedOrders = localStorage.getItem('gharcraft_orders');
-      if (savedOrders) {
-        setOrders(JSON.parse(savedOrders));
-      } else {
-        setOrders([
-          {
-            id: 'GHAR-98412',
-            date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-            customerName: 'Rahul Sharma',
-            phone: '9876543210',
-            email: 'rahul.sharma@example.com',
-            address: 'Flat 402, Green Acres Heights, Off Linking Road, Bandra West',
-            pincode: '400001',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            items: [
-              { productId: 'gharcraft-spice-jars-12', productName: 'Borosilicate Glass Spice Jar Set with Bamboo Lids (Set of 12)', quantity: 1, color: 'Natural Bamboo', price: 1499 },
-              { productId: 'gharcraft-under-sink-organizer', productName: '2-Tier Expandable Under-Sink Storage Rack', quantity: 1, color: 'Nordic White', price: 1899 },
-            ],
-            paymentMethod: 'upi',
-            subtotal: 3398,
-            discountAmount: 0,
-            shippingFee: 0,
-            totalAmount: 3398,
-            status: 'Processing',
-          },
-        ]);
-      }
-    } catch (e) {
-      console.error('Error restoring localStorage session', e);
-    }
+    initData();
   }, []);
 
-  // Sync Cart to LocalStorage
   const saveCartToStorage = (updatedCart: CartItem[]) => {
     setCart(updatedCart);
     try {
@@ -232,7 +247,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Sync Wishlist to LocalStorage
   const saveWishlistToStorage = (updatedWishlist: string[]) => {
     setWishlist(updatedWishlist);
     try {
@@ -242,48 +256,130 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Product Management Functions
-  const addProduct = (newProduct: Omit<Product, 'id'>) => {
-    const generatedId = `gharcraft-custom-${Date.now()}`;
+  // 1. ADD PRODUCT TO SUPABASE + LOCAL STATE
+  const addProduct = async (newProduct: Omit<Product, 'id'>) => {
+    const generatedId = `gharcraft-${Date.now()}`;
     const fullProduct: Product = {
       ...newProduct,
       id: generatedId,
       rating: 5.0,
       reviewsCount: 1,
     };
-    setProducts((prev) => {
-      const updated = [fullProduct, ...prev];
+
+    setProducts((prev) => [fullProduct, ...prev]);
+
+    if (isSupabaseConnected) {
       try {
-        localStorage.setItem('gharcraft_products', JSON.stringify(updated));
+        await supabase.from('products').insert([
+          {
+            id: generatedId,
+            name: fullProduct.name,
+            tagline: fullProduct.tagline,
+            category: fullProduct.category,
+            price: fullProduct.price,
+            mrp: fullProduct.mrp,
+            images: fullProduct.images,
+            description: fullProduct.description,
+            features: fullProduct.features,
+            material: fullProduct.material,
+            stock_status: fullProduct.stockStatus,
+            rating: 5.0,
+            reviews_count: 1,
+          },
+        ]);
       } catch (e) {
-        console.error(e);
+        console.error('Supabase product insert error', e);
       }
-      return updated;
-    });
+    }
+
+    try {
+      localStorage.setItem('gharcraft_products', JSON.stringify([fullProduct, ...products]));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const updateProduct = (id: string, updatedFields: Partial<Product>) => {
-    setProducts((prev) => {
-      const updated = prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p));
+  // 2. UPDATE PRODUCT IN SUPABASE + LOCAL STATE
+  const updateProduct = async (id: string, updatedFields: Partial<Product>) => {
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
+
+    if (isSupabaseConnected) {
       try {
-        localStorage.setItem('gharcraft_products', JSON.stringify(updated));
+        const payload: any = {};
+        if (updatedFields.price !== undefined) payload.price = updatedFields.price;
+        if (updatedFields.mrp !== undefined) payload.mrp = updatedFields.mrp;
+        if (updatedFields.stockStatus !== undefined) payload.stock_status = updatedFields.stockStatus;
+        if (updatedFields.name !== undefined) payload.name = updatedFields.name;
+
+        await supabase.from('products').update(payload).eq('id', id);
       } catch (e) {
-        console.error(e);
+        console.error('Supabase product update error', e);
       }
-      return updated;
-    });
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts((prev) => {
-      const updated = prev.filter((p) => p.id !== id);
+  // 3. DELETE PRODUCT FROM SUPABASE + LOCAL STATE
+  const deleteProduct = async (id: string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+
+    if (isSupabaseConnected) {
       try {
-        localStorage.setItem('gharcraft_products', JSON.stringify(updated));
+        await supabase.from('products').delete().eq('id', id);
       } catch (e) {
-        console.error(e);
+        console.error('Supabase product delete error', e);
       }
-      return updated;
-    });
+    }
+  };
+
+  // 4. ADD ORDER TO SUPABASE + LOCAL STATE
+  const addOrder = async (newOrder: CustomerOrder) => {
+    setOrders((prev) => [newOrder, ...prev]);
+
+    if (isSupabaseConnected) {
+      try {
+        await supabase.from('orders').insert([
+          {
+            id: newOrder.id,
+            customer_name: newOrder.customerName,
+            customer_phone: newOrder.phone,
+            customer_email: newOrder.email,
+            address: newOrder.address,
+            pincode: newOrder.pincode,
+            city: newOrder.city,
+            state: newOrder.state,
+            items: newOrder.items,
+            payment_method: newOrder.paymentMethod,
+            subtotal: newOrder.subtotal,
+            discount_amount: newOrder.discountAmount,
+            shipping_fee: newOrder.shippingFee,
+            total_amount: newOrder.totalAmount,
+            status: newOrder.status,
+            gst_details: newOrder.gstDetails,
+          },
+        ]);
+      } catch (e) {
+        console.error('Supabase order insert error', e);
+      }
+    }
+
+    try {
+      localStorage.setItem('gharcraft_orders', JSON.stringify([newOrder, ...orders]));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // 5. UPDATE ORDER STATUS IN SUPABASE
+  const updateOrderStatus = async (orderId: string, status: CustomerOrder['status']) => {
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
+
+    if (isSupabaseConnected) {
+      try {
+        await supabase.from('orders').update({ status }).eq('id', orderId);
+      } catch (e) {
+        console.error('Supabase order status update error', e);
+      }
+    }
   };
 
   // User Auth Functions
@@ -327,7 +423,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Admin Auth Functions (Default Password: "admin123" or "gharcraft2026")
+  // Admin Auth Functions
   const adminLogin = (password: string): boolean => {
     if (password === 'admin123' || password === 'gharcraft2026' || password === 'admin') {
       setIsAdminAuthenticated(true);
@@ -348,31 +444,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (e) {
       console.error(e);
     }
-  };
-
-  // Orders Functions
-  const addOrder = (newOrder: CustomerOrder) => {
-    setOrders((prev) => {
-      const updated = [newOrder, ...prev];
-      try {
-        localStorage.setItem('gharcraft_orders', JSON.stringify(updated));
-      } catch (e) {
-        console.error(e);
-      }
-      return updated;
-    });
-  };
-
-  const updateOrderStatus = (orderId: string, status: CustomerOrder['status']) => {
-    setOrders((prev) => {
-      const updated = prev.map((o) => (o.id === orderId ? { ...o, status } : o));
-      try {
-        localStorage.setItem('gharcraft_orders', JSON.stringify(updated));
-      } catch (e) {
-        console.error(e);
-      }
-      return updated;
-    });
   };
 
   const addToCart = (product: Product, quantity: number = 1, color?: string) => {
@@ -525,6 +596,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateOrderStatus,
         recentlyViewed,
         addRecentlyViewed,
+        isSupabaseConnected,
       }}
     >
       {children}
