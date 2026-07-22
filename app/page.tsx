@@ -3,50 +3,52 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, Star, ShieldCheck, Truck, Sparkles, CheckCircle2, RotateCcw, Play, Heart, Gift, MessageCircle } from 'lucide-react';
-import { PRODUCTS, Product } from '@/data/products';
+import { ArrowRight, Star, ShieldCheck, Truck, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Product } from '@/data/products';
 import { BLOG_POSTS } from '@/data/blogs';
 import { ProductCard } from '@/components/ProductCard';
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider';
-
-const ROOM_CATEGORIES = [
-  {
-    id: 'Kitchen',
-    title: 'Kitchen & Spice Pantry',
-    subtitle: 'Airtight borosilicate jars, lazy susans & spice racks',
-    img: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=1000&auto=format&fit=crop',
-    itemsCount: '18 Products',
-  },
-  {
-    id: 'Storage',
-    title: 'Pantry Containers',
-    subtitle: 'Stackable BPA-free containers for Atta, Rice & Dals',
-    img: 'https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?q=80&w=1000&auto=format&fit=crop',
-    itemsCount: '12 Products',
-  },
-  {
-    id: 'Bathroom',
-    title: 'Bathroom Storage',
-    subtitle: 'Rust-proof self-adhesive aluminum shower racks',
-    img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1000&auto=format&fit=crop',
-    itemsCount: '9 Products',
-  },
-  {
-    id: 'Laundry',
-    title: 'Laundry & Living',
-    subtitle: 'Foldable linen hampers & under-bed saree organizers',
-    img: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?q=80&w=1000&auto=format&fit=crop',
-    itemsCount: '14 Products',
-  },
-];
+import { useStore } from '@/context/StoreContext';
 
 export default function HomePage() {
+  const { products, siteContent } = useStore();
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>('All');
   const [emailSubscribed, setEmailSubscribed] = useState(false);
 
+  const roomCategories = [
+    {
+      id: 'Kitchen',
+      title: 'Kitchen & Spice Pantry',
+      subtitle: 'Airtight borosilicate jars, lazy susans & spice racks',
+      img: siteContent.roomKitchenImg,
+      itemsCount: `${products.filter((p) => p.category === 'Kitchen').length} Products`,
+    },
+    {
+      id: 'Storage',
+      title: 'Pantry Containers',
+      subtitle: 'Stackable BPA-free containers for Atta, Rice & Dals',
+      img: siteContent.roomStorageImg,
+      itemsCount: `${products.filter((p) => p.category === 'Storage').length} Products`,
+    },
+    {
+      id: 'Bathroom',
+      title: 'Bathroom Storage',
+      subtitle: 'Rust-proof self-adhesive aluminum shower racks',
+      img: siteContent.roomBathroomImg,
+      itemsCount: `${products.filter((p) => p.category === 'Bathroom').length} Products`,
+    },
+    {
+      id: 'Laundry',
+      title: 'Laundry & Living',
+      subtitle: 'Foldable linen hampers & under-bed saree organizers',
+      img: siteContent.roomLaundryImg,
+      itemsCount: `${products.filter((p) => p.category === 'Laundry' || p.category === 'Living').length} Products`,
+    },
+  ];
+
   const filteredProducts = activeCategoryTab === 'All'
-    ? PRODUCTS
-    : PRODUCTS.filter((p) => p.category === activeCategoryTab);
+    ? products
+    : products.filter((p) => p.category === activeCategoryTab);
 
   return (
     <div className="space-y-0">
@@ -60,11 +62,11 @@ export default function HomePage() {
             </div>
 
             <h1 className="font-display font-bold text-4xl sm:text-5xl lg:text-6xl text-dark leading-[1.15] tracking-tight">
-              Crafting <span className="text-primary italic font-serif">Better</span> Homes.
+              {siteContent.heroHeadline}
             </h1>
 
             <p className="text-gray-600 text-base sm:text-lg max-w-xl leading-relaxed font-sans">
-              Smart, aesthetic home organization products thoughtfully designed for modern Indian kitchens, wardrobes, and living spaces.
+              {siteContent.heroSubheading}
             </p>
 
             <div className="flex flex-wrap gap-4 pt-2">
@@ -109,8 +111,8 @@ export default function HomePage() {
           <div className="lg:col-span-6 relative">
             <div className="relative aspect-[4/3] lg:aspect-square w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
               <Image
-                src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=1200&auto=format&fit=crop"
-                alt="Organized Indian Kitchen"
+                src={siteContent.heroBannerImg}
+                alt="Hero Lifestyle Banner"
                 fill
                 priority
                 className="object-cover hover:scale-105 transition-transform duration-700"
@@ -127,8 +129,8 @@ export default function HomePage() {
                     <p className="text-[10px] text-gray-500">100% Moisture Proof Silicone Bamboo Seal</p>
                   </div>
                 </div>
-                <Link href="/product/gharcraft-spice-jars-12" className="text-xs font-bold text-primary hover:underline">
-                  Shop ₹1,499 &rarr;
+                <Link href="/shop" className="text-xs font-bold text-primary hover:underline">
+                  Shop Collection &rarr;
                 </Link>
               </div>
             </div>
@@ -150,7 +152,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {ROOM_CATEGORIES.map((cat) => (
+            {roomCategories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/shop?category=${cat.id}`}

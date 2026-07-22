@@ -7,7 +7,7 @@ import { ShieldCheck, Truck, ArrowRight, CheckCircle2, QrCode, CreditCard, Bankn
 import { useStore, CustomerOrder } from '@/context/StoreContext';
 
 export default function CheckoutPage() {
-  const { cart, subtotal, discountAmount, shippingFee, grandTotal, appliedCoupon, clearCart, addOrder } = useStore();
+  const { cart, subtotal, discountAmount, shippingFee, grandTotal, appliedCoupon, clearCart, addOrder, currentUser } = useStore();
 
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'cod' | 'card' | 'netbanking'>('upi');
   const [upiApp, setUpiApp] = useState<'gpay' | 'phonepe' | 'paytm'>('gpay');
@@ -15,15 +15,15 @@ export default function CheckoutPage() {
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<CustomerOrder | null>(null);
 
-  // Form State
+  // Form State initialized clean (uses currentUser if logged in)
   const [formData, setFormData] = useState({
-    fullName: 'Rahul Sharma',
-    phone: '9876543210',
-    email: 'rahul.sharma@example.com',
-    pincode: '400001',
-    address: 'Flat 402, Green Acres Heights, Off Linking Road, Bandra West',
-    city: 'Mumbai',
-    state: 'Maharashtra',
+    fullName: currentUser?.name || '',
+    phone: currentUser?.phone || '',
+    email: currentUser?.email || '',
+    pincode: '',
+    address: '',
+    city: '',
+    state: '',
     companyName: '',
     gstin: '',
   });
@@ -37,6 +37,8 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.fullName || !formData.phone || !formData.address || !formData.pincode) return;
+
     const generatedId = `GHAR-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const newOrder: CustomerOrder = {
@@ -47,8 +49,8 @@ export default function CheckoutPage() {
       email: formData.email,
       address: formData.address,
       pincode: formData.pincode,
-      city: formData.city,
-      state: formData.state,
+      city: formData.city || 'India',
+      state: formData.state || 'India',
       items: cart.map((item) => ({
         productId: item.product.id,
         productName: item.product.name,
@@ -117,12 +119,6 @@ export default function CheckoutPage() {
             >
               <Truck className="w-4 h-4" /> Live Order Tracking
             </Link>
-            <Link
-              href="/admin"
-              className="bg-dark hover:bg-primary text-white font-heading font-semibold py-3.5 px-6 rounded-2xl text-xs transition-colors"
-            >
-              View In Merchant Admin Portal
-            </Link>
           </div>
         </div>
       </div>
@@ -153,6 +149,7 @@ export default function CheckoutPage() {
                   <input
                     type="text"
                     required
+                    placeholder="Enter your full name"
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 outline-none focus:border-primary"
@@ -163,6 +160,7 @@ export default function CheckoutPage() {
                   <input
                     type="tel"
                     required
+                    placeholder="10-digit mobile number"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 outline-none focus:border-primary font-mono"
@@ -173,6 +171,7 @@ export default function CheckoutPage() {
                   <input
                     type="email"
                     required
+                    placeholder="your.email@example.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 outline-none focus:border-primary"
@@ -183,6 +182,7 @@ export default function CheckoutPage() {
                   <input
                     type="text"
                     required
+                    placeholder="Complete delivery address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 outline-none focus:border-primary"
@@ -194,6 +194,7 @@ export default function CheckoutPage() {
                     type="text"
                     required
                     maxLength={6}
+                    placeholder="6-digit Indian pincode"
                     value={formData.pincode}
                     onChange={(e) => handlePincodeChange(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 outline-none focus:border-primary font-mono"
@@ -203,9 +204,10 @@ export default function CheckoutPage() {
                   <label className="font-semibold text-dark block mb-1">City / State</label>
                   <input
                     type="text"
-                    readOnly
-                    value={`${formData.city}, ${formData.state}`}
-                    className="w-full border border-gray-200 bg-gray-50 rounded-xl px-3.5 py-2.5 text-gray-500"
+                    placeholder="City & State"
+                    value={formData.city ? `${formData.city}, ${formData.state}` : ''}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 outline-none focus:border-primary"
                   />
                 </div>
               </div>

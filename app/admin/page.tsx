@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sparkles, DollarSign, ShoppingBag, Users, Tag, Package, ArrowUpRight, CheckCircle2, Clock, Truck, Edit3, Copy, Download, FileSpreadsheet, Check, Lock, Plus, Trash2, X, RefreshCw, LogOut } from 'lucide-react';
+import { Sparkles, DollarSign, ShoppingBag, Users, Tag, Package, ArrowUpRight, CheckCircle2, Clock, Truck, Edit3, Copy, Download, FileSpreadsheet, Check, Lock, Plus, Trash2, X, RefreshCw, LogOut, Image as ImageIcon, Layout, Save } from 'lucide-react';
 import { Product } from '@/data/products';
 import { useStore, CustomerOrder } from '@/context/StoreContext';
 
@@ -13,6 +13,8 @@ export default function AdminPage() {
     addProduct,
     updateProduct,
     deleteProduct,
+    siteContent,
+    updateSiteContent,
     orders,
     updateOrderStatus,
     isAdminAuthenticated,
@@ -23,9 +25,13 @@ export default function AdminPage() {
   const [passwordInput, setPasswordInput] = useState('');
   const [passError, setPassError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'inventory' | 'orders' | 'overview' | 'coupons'>('inventory');
+  const [activeTab, setActiveTab] = useState<'banners' | 'inventory' | 'orders' | 'overview'>('banners');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('All');
+
+  // Site Content Form State
+  const [bannersForm, setBannersForm] = useState(siteContent);
+  const [bannersSavedNotice, setBannersSavedNotice] = useState(false);
 
   // Add Product Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -47,6 +53,13 @@ export default function AdminPage() {
     } else {
       setPassError('');
     }
+  };
+
+  const handleSaveBanners = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateSiteContent(bannersForm);
+    setBannersSavedNotice(true);
+    setTimeout(() => setBannersSavedNotice(false), 3000);
   };
 
   const handleCreateProduct = (e: React.FormEvent) => {
@@ -73,7 +86,6 @@ export default function AdminPage() {
     });
 
     setShowAddModal(false);
-    // Reset inputs
     setNewProdName('');
     setNewProdTagline('');
   };
@@ -135,7 +147,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
               Protected Merchant Access
             </span>
             <h1 className="font-heading font-bold text-2xl text-dark mt-2">GharCraft Admin Portal</h1>
-            <p className="text-xs text-gray-500 mt-1">Enter your merchant password to manage products, pricing, and orders.</p>
+            <p className="text-xs text-gray-500 mt-1">Enter your merchant password to manage website images, headlines, products, and orders.</p>
           </div>
 
           <form onSubmit={handleAdminAuthSubmit} className="space-y-4 text-xs text-left">
@@ -180,10 +192,10 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           <div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Authenticated Admin Session</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Merchant Portal (Hidden From Public)</span>
             </div>
-            <h1 className="font-heading font-bold text-2xl sm:text-3xl mt-1">GharCraft Product & Order Operations</h1>
-            <p className="text-xs text-gray-400 mt-1">Add/Edit real store products, manage inventory prices, and dispatch customer tickets.</p>
+            <h1 className="font-heading font-bold text-2xl sm:text-3xl mt-1">GharCraft Control Center</h1>
+            <p className="text-xs text-gray-400 mt-1">Edit all site images/banners, manage store products, and dispatch customer tickets.</p>
           </div>
 
           <div className="flex gap-2 flex-wrap">
@@ -191,7 +203,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
               onClick={() => setShowAddModal(true)}
               className="bg-primary hover:bg-primary-dark text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              <Plus className="w-4 h-4" /> Add New Real Product
+              <Plus className="w-4 h-4" /> Add Product
             </button>
             <button
               onClick={exportCSV}
@@ -211,8 +223,9 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
         {/* Navigation Tabs */}
         <div className="flex gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
           {[
-            { id: 'inventory', label: `Real Product Catalog (${products.length} Items)` },
-            { id: 'orders', label: `Customer Orders & Dispatch (${orders.length})` },
+            { id: 'banners', label: 'Site Banners & Images Editor' },
+            { id: 'inventory', label: `Product Catalog (${products.length})` },
+            { id: 'orders', label: `Customer Dispatch Tickets (${orders.length})` },
             { id: 'overview', label: 'Analytics Overview' },
           ].map((tab) => (
             <button
@@ -229,7 +242,141 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           ))}
         </div>
 
-        {/* TAB 1: PRODUCT CATALOG & INVENTORY MANAGEMENT */}
+        {/* TAB 1: SITE BANNERS & IMAGES EDITOR */}
+        {activeTab === 'banners' && (
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-soft space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+              <div>
+                <h2 className="font-heading font-bold text-lg text-dark flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-primary" /> Edit Website Banners, Headlines & Room Images
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">Paste any image URL (Unsplash, Imgur, or direct link) to instantly update the live site.</p>
+              </div>
+
+              {bannersSavedNotice && (
+                <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                  <Check className="w-3.5 h-3.5" /> Saved & Updated Live!
+                </span>
+              )}
+            </div>
+
+            <form onSubmit={handleSaveBanners} className="space-y-6 text-xs">
+              {/* Section A: Hero Banner */}
+              <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
+                <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
+                  <Layout className="w-4 h-4 text-primary" /> 1. Homepage Hero Banner & Headlines
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Hero Image URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bannersForm.heroBannerImg}
+                      onChange={(e) => setBannersForm({ ...bannersForm, heroBannerImg: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Hero Title Headline</label>
+                    <input
+                      type="text"
+                      required
+                      value={bannersForm.heroHeadline}
+                      onChange={(e) => setBannersForm({ ...bannersForm, heroHeadline: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary font-heading font-bold"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="font-semibold text-dark block mb-1">Hero Subheading</label>
+                    <input
+                      type="text"
+                      required
+                      value={bannersForm.heroSubheading}
+                      onChange={(e) => setBannersForm({ ...bannersForm, heroSubheading: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section B: About Us Page Image */}
+              <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
+                <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-accent" /> 2. About Us Brand Story Image
+                </h3>
+                <div>
+                  <label className="font-semibold text-dark block mb-1">About Us Image URL</label>
+                  <input
+                    type="url"
+                    required
+                    value={bannersForm.aboutImg}
+                    onChange={(e) => setBannersForm({ ...bannersForm, aboutImg: e.target.value })}
+                    className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Section C: Shop By Room Category Images */}
+              <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
+                <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
+                  <Package className="w-4 h-4 text-amber-600" /> 3. Room Category Card Images
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Kitchen Room Image URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bannersForm.roomKitchenImg}
+                      onChange={(e) => setBannersForm({ ...bannersForm, roomKitchenImg: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Pantry Storage Image URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bannersForm.roomStorageImg}
+                      onChange={(e) => setBannersForm({ ...bannersForm, roomStorageImg: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Bathroom Room Image URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bannersForm.roomBathroomImg}
+                      onChange={(e) => setBannersForm({ ...bannersForm, roomBathroomImg: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Laundry & Living Image URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bannersForm.roomLaundryImg}
+                      onChange={(e) => setBannersForm({ ...bannersForm, roomLaundryImg: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="bg-primary hover:bg-primary-dark text-white font-heading font-semibold px-8 py-3.5 rounded-2xl flex items-center gap-2 shadow-md transition-all text-xs"
+              >
+                <Save className="w-4 h-4" /> Save Website Banners & Content
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 2: PRODUCT CATALOG & INVENTORY MANAGEMENT */}
         {activeTab === 'inventory' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs">
@@ -304,7 +451,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           </div>
         )}
 
-        {/* TAB 2: CUSTOMER DISPATCH TICKETS */}
+        {/* TAB 3: CUSTOMER DISPATCH TICKETS */}
         {activeTab === 'orders' && (
           <div className="space-y-6">
             {/* Status Filters */}
@@ -330,7 +477,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
             {/* Orders Dispatch Cards List */}
             {filteredOrders.length === 0 ? (
               <div className="bg-white p-12 rounded-3xl border border-gray-200 text-center text-xs text-gray-500">
-                No orders match filter "{statusFilter}". Place a test order on the storefront to test manual dispatch!
+                No orders match filter "{statusFilter}". Customer orders placed on checkout will appear here!
               </div>
             ) : (
               <div className="space-y-6">
@@ -434,7 +581,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           </div>
         )}
 
-        {/* TAB 3: OVERVIEW */}
+        {/* TAB 4: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

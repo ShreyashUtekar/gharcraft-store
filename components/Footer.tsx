@@ -103,7 +103,6 @@ export const Footer = () => {
             <li><Link href="/track-order" className="hover:text-white transition-colors">Track Your Order</Link></li>
             <li><Link href="/about" className="hover:text-white transition-colors">About Our Brand</Link></li>
             <li><Link href="/blog" className="hover:text-white transition-colors">Organization Guides</Link></li>
-            <li><Link href="/admin" className="hover:text-white transition-colors">Merchant Portal</Link></li>
             <li><a href="mailto:support@gharcraft.in" className="hover:text-white transition-colors">support@gharcraft.in</a></li>
           </ul>
         </div>

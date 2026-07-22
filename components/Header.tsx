@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Heart, ShoppingBag, User, Sparkles, ChevronDown, Menu, X, ShieldAlert } from 'lucide-react';
+import { Search, Heart, ShoppingBag, User, ChevronDown, Menu, X } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 
 export const Header = () => {
@@ -190,15 +190,6 @@ export const Header = () => {
               )}
             </div>
           </button>
-
-          {/* Admin Dashboard Quick Link */}
-          <Link
-            href="/admin"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-dark text-white hover:bg-primary text-xs font-medium rounded-full transition-all duration-300 shadow-sm"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            Merchant Admin
-          </Link>
         </div>
       </div>
 
@@ -241,13 +232,6 @@ export const Header = () => {
             className="block py-2 text-dark font-medium border-b border-gray-100"
           >
             Track My Order
-          </Link>
-          <Link
-            href="/admin"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block w-full text-center py-2.5 bg-dark text-white font-medium rounded-xl mt-4"
-          >
-            Merchant Admin Dashboard
           </Link>
         </div>
       )}

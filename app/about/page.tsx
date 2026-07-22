@@ -4,8 +4,11 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Sparkles, Heart, CheckCircle2, ShieldCheck, Award, ArrowRight } from 'lucide-react';
+import { useStore } from '@/context/StoreContext';
 
 export default function AboutPage() {
+  const { siteContent } = useStore();
+
   return (
     <div className="bg-brandBg min-h-screen py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
@@ -47,7 +50,7 @@ export default function AboutPage() {
 
           <div className="lg:col-span-6 relative aspect-square rounded-3xl overflow-hidden shadow-xl border-4 border-white">
             <Image
-              src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=1000&auto=format&fit=crop"
+              src={siteContent.aboutImg}
               alt="GharCraft Design Studio"
               fill
               className="object-cover"
