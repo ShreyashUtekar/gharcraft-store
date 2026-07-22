@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sparkles, DollarSign, ShoppingBag, Users, Tag, Package, ArrowUpRight, CheckCircle2, Clock, Truck, Edit3, Copy, Download, FileSpreadsheet, Check, Lock, Plus, Trash2, X, RefreshCw, LogOut, Image as ImageIcon, Layout, Save, BookOpen } from 'lucide-react';
+import { Sparkles, DollarSign, ShoppingBag, Users, Tag, Package, ArrowUpRight, CheckCircle2, Clock, Truck, Edit3, Copy, Download, FileSpreadsheet, Check, Lock, Plus, Trash2, X, RefreshCw, LogOut, Image as ImageIcon, Layout, Save, QrCode } from 'lucide-react';
 import { Product } from '@/data/products';
 import { useStore, CustomerOrder } from '@/context/StoreContext';
 
@@ -130,7 +130,7 @@ Customer Name: ${ord.customerName}
 Phone: ${ord.phone}
 Email: ${ord.email}
 Address: ${ord.address}, ${ord.city}, ${ord.state} - ${ord.pincode}
-Payment Method: ${ord.paymentMethod.toUpperCase()} (Total Amount: ₹${ord.totalAmount})
+Payment Method: ${ord.paymentMethod.toUpperCase()} ${ord.upiUtr ? `(UPI Ref/UTR: ${ord.upiUtr})` : ''} (Total Amount: ₹${ord.totalAmount})
 Items to Ship:
 ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `, Color: ${it.color}` : ''})`).join('\n')}`;
 
@@ -140,7 +140,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
   };
 
   const exportCSV = () => {
-    const headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Email', 'Address', 'City', 'State', 'Pincode', 'Payment Method', 'Items', 'Total Amount', 'Status'];
+    const headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Email', 'Address', 'City', 'State', 'Pincode', 'Payment Method', 'UPI UTR', 'Items', 'Total Amount', 'Status'];
     const rows = orders.map((o) => [
       o.id,
       o.date,
@@ -152,6 +152,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
       o.state,
       o.pincode,
       o.paymentMethod.toUpperCase(),
+      o.upiUtr || 'N/A',
       `"${o.items.map((i) => `${i.productName} (x${i.quantity})`).join('; ')}"`,
       o.totalAmount,
       o.status,
@@ -229,7 +230,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
               <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Merchant Operations Portal</span>
             </div>
             <h1 className="font-heading font-bold text-2xl sm:text-3xl mt-1">GharCraft Control Center</h1>
-            <p className="text-xs text-gray-400 mt-1">Add/Edit Guides & Hacks, site banners, real products, and dispatch customer tickets.</p>
+            <p className="text-xs text-gray-400 mt-1">Configure Free UPI Payment Gateway, edit guides, banners, products, and dispatch tickets.</p>
           </div>
 
           <div className="flex gap-2 flex-wrap">
@@ -264,7 +265,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
         <div className="flex gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
           {[
             { id: 'guides', label: `Organization Guides & Hacks (${blogs.length})` },
-            { id: 'banners', label: 'Site Banners & Images Editor' },
+            { id: 'banners', label: 'Site Banners & Free UPI Gateway Editor' },
             { id: 'inventory', label: `Product Catalog (${products.length})` },
             { id: 'orders', label: `Customer Dispatch Tickets (${orders.length})` },
             { id: 'overview', label: 'Analytics Overview' },
@@ -338,15 +339,15 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
           </div>
         )}
 
-        {/* TAB 2: SITE BANNERS & IMAGES EDITOR */}
+        {/* TAB 2: SITE BANNERS & FREE NON-GST UPI GATEWAY EDITOR */}
         {activeTab === 'banners' && (
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-soft space-y-6">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4">
               <div>
                 <h2 className="font-heading font-bold text-lg text-dark flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-primary" /> Edit Website Banners, Headlines & Room Images
+                  <QrCode className="w-5 h-5 text-emerald-600" /> Free Non-GST UPI Gateway & Banners Configuration
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">Paste any image URL (Unsplash, Imgur, or direct link) to instantly update the live site.</p>
+                <p className="text-xs text-gray-500 mt-0.5">Set your personal or business UPI VPA ID (e.g. shreyash@upi) to receive 100% direct bank deposits with 0% gateway fees and no GST number requirement!</p>
               </div>
 
               {bannersSavedNotice && (
@@ -357,9 +358,29 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
             </div>
 
             <form onSubmit={handleSaveBanners} className="space-y-6 text-xs">
+              {/* Section A: Free Non-GST UPI Configuration */}
+              <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-3">
+                <h3 className="font-heading font-bold text-sm text-emerald-900 flex items-center gap-2">
+                  <QrCode className="w-4 h-4 text-emerald-700" /> 1. Your Personal / Business UPI VPA ID (No GST Needed)
+                </h3>
+                <p className="text-emerald-700 text-[11px]">Money paid by customers will land directly into your HDFC, SBI, ICICI, Google Pay, or Paytm Bank Account instantly.</p>
+                <div>
+                  <label className="font-semibold text-dark block mb-1">Your UPI ID (VPA)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. shreyash@upi or 9876543210@paytm"
+                    value={bannersForm.merchantUpiId || ''}
+                    onChange={(e) => setBannersForm({ ...bannersForm, merchantUpiId: e.target.value })}
+                    className="w-full border border-gray-300 bg-white rounded-xl px-4 py-2.5 outline-none focus:border-emerald-600 font-mono font-bold text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Section B: Hero Banner */}
               <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
                 <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
-                  <Layout className="w-4 h-4 text-primary" /> 1. Homepage Hero Banner & Headlines
+                  <Layout className="w-4 h-4 text-primary" /> 2. Homepage Hero Banner & Headlines
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -395,9 +416,10 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                 </div>
               </div>
 
+              {/* Section C: About Us Page Image */}
               <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
                 <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-accent" /> 2. About Us Brand Story Image
+                  <ImageIcon className="w-4 h-4 text-accent" /> 3. About Us Brand Story Image
                 </h3>
                 <div>
                   <label className="font-semibold text-dark block mb-1">About Us Image URL</label>
@@ -411,59 +433,11 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                 </div>
               </div>
 
-              <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
-                <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
-                  <Package className="w-4 h-4 text-amber-600" /> 3. Room Category Card Images
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="font-semibold text-dark block mb-1">Kitchen Room Image URL</label>
-                    <input
-                      type="url"
-                      required
-                      value={bannersForm.roomKitchenImg}
-                      onChange={(e) => setBannersForm({ ...bannersForm, roomKitchenImg: e.target.value })}
-                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-semibold text-dark block mb-1">Pantry Storage Image URL</label>
-                    <input
-                      type="url"
-                      required
-                      value={bannersForm.roomStorageImg}
-                      onChange={(e) => setBannersForm({ ...bannersForm, roomStorageImg: e.target.value })}
-                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-semibold text-dark block mb-1">Bathroom Room Image URL</label>
-                    <input
-                      type="url"
-                      required
-                      value={bannersForm.roomBathroomImg}
-                      onChange={(e) => setBannersForm({ ...bannersForm, roomBathroomImg: e.target.value })}
-                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-semibold text-dark block mb-1">Laundry & Living Image URL</label>
-                    <input
-                      type="url"
-                      required
-                      value={bannersForm.roomLaundryImg}
-                      onChange={(e) => setBannersForm({ ...bannersForm, roomLaundryImg: e.target.value })}
-                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
-                    />
-                  </div>
-                </div>
-              </div>
-
               <button
                 type="submit"
                 className="bg-primary hover:bg-primary-dark text-white font-heading font-semibold px-8 py-3.5 rounded-2xl flex items-center gap-2 shadow-md transition-all text-xs"
               >
-                <Save className="w-4 h-4" /> Save Website Banners & Content
+                <Save className="w-4 h-4" /> Save Settings & UPI Gateway
               </button>
             </form>
           </div>
@@ -577,7 +551,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                     className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-soft hover:shadow-md transition-all space-y-4"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <span className="font-mono font-bold text-base text-dark bg-brandBg px-3 py-1 rounded-xl border border-gray-200">
                           {ord.id}
                         </span>
@@ -585,6 +559,11 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                         <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-900 border border-emerald-200">
                           Payment: {ord.paymentMethod.toUpperCase()} (₹{ord.totalAmount})
                         </span>
+                        {ord.upiUtr && (
+                          <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                            UPI UTR Ref: {ord.upiUtr}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 text-xs">

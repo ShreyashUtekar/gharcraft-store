@@ -3,14 +3,15 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShieldCheck, Truck, ArrowRight, CheckCircle2, QrCode, CreditCard, Banknote, Building2, Sparkles } from 'lucide-react';
+import { ShieldCheck, Truck, ArrowRight, CheckCircle2, QrCode, CreditCard, Copy, Check, Sparkles, AlertCircle } from 'lucide-react';
 import { useStore, CustomerOrder } from '@/context/StoreContext';
 
 export default function CheckoutPage() {
-  const { cart, subtotal, discountAmount, shippingFee, grandTotal, appliedCoupon, clearCart, addOrder, currentUser } = useStore();
+  const { cart, subtotal, discountAmount, shippingFee, grandTotal, appliedCoupon, clearCart, addOrder, currentUser, siteContent } = useStore();
 
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
-  const [upiApp, setUpiApp] = useState<'gpay' | 'phonepe' | 'paytm'>('gpay');
+  const [upiUtr, setUpiUtr] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
   const [needGst, setNeedGst] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<CustomerOrder | null>(null);
@@ -28,6 +29,15 @@ export default function CheckoutPage() {
     gstin: '',
   });
 
+  const merchantUpiId = siteContent.merchantUpiId || 'gharcraft@upi';
+  const dynamicQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(merchantUpiId)}&pn=GharCraft%20Store&am=${grandTotal}&cu=INR`;
+
+  const copyUpiId = () => {
+    navigator.clipboard.writeText(merchantUpiId);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2500);
+  };
+
   const handlePincodeChange = (val: string) => {
     setFormData((prev) => ({ ...prev, pincode: val }));
     if (val === '110001') setFormData((prev) => ({ ...prev, city: 'New Delhi', state: 'Delhi' }));
@@ -38,6 +48,10 @@ export default function CheckoutPage() {
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName || !formData.phone || !formData.address || !formData.pincode) return;
+    if (paymentMethod === 'upi' && !upiUtr) {
+      alert('Please enter your 12-digit UPI UTR / Reference Number after completing payment on Google Pay, PhonePe, or Paytm.');
+      return;
+    }
 
     const generatedId = `GHAR-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -59,6 +73,7 @@ export default function CheckoutPage() {
         price: item.product.price,
       })),
       paymentMethod: paymentMethod,
+      upiUtr: paymentMethod === 'upi' ? upiUtr : undefined,
       subtotal: subtotal,
       discountAmount: discountAmount,
       shippingFee: shippingFee,
@@ -83,13 +98,13 @@ export default function CheckoutPage() {
 
           <div>
             <span className="text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-3 py-1 rounded-full">
-              Prepaid Order Confirmed
+              Direct Zero-Fee Order Confirmed
             </span>
             <h1 className="font-heading font-bold text-2xl sm:text-3xl text-dark mt-3">
               Thank You, {createdOrder.customerName}!
             </h1>
             <p className="text-xs text-gray-500 mt-1">
-              Your home organization products are being packed with care at our warehouse.
+              Your payment of <strong>₹{createdOrder.totalAmount}</strong> has been logged. Order is being prepared for dispatch!
             </p>
           </div>
 
@@ -98,13 +113,15 @@ export default function CheckoutPage() {
               <span className="text-gray-500">Order ID:</span>
               <strong className="font-mono text-dark text-sm">{createdOrder.id}</strong>
             </div>
+            {createdOrder.upiUtr && (
+              <div className="flex justify-between border-b border-gray-200 pb-2">
+                <span className="text-gray-500">UPI Ref / UTR No.:</span>
+                <strong className="font-mono text-primary text-sm">{createdOrder.upiUtr}</strong>
+              </div>
+            )}
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500">Payment Method:</span>
-              <strong className="uppercase text-dark">{createdOrder.paymentMethod} (Paid)</strong>
-            </div>
-            <div className="flex justify-between border-b border-gray-200 pb-2">
-              <span className="text-gray-500">Estimated Delivery:</span>
-              <strong className="text-primary font-bold">Within 2-3 Business Days</strong>
+              <strong className="uppercase text-dark">Direct UPI Transfer (0% Fee)</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Delivery Address:</span>
@@ -117,7 +134,7 @@ export default function CheckoutPage() {
               href={`/track-order?awb=${createdOrder.id}`}
               className="flex-1 bg-primary hover:bg-primary-dark text-white font-heading font-semibold py-3.5 px-6 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-md transition-all"
             >
-              <Truck className="w-4 h-4" /> Live Order Tracking
+              <Truck className="w-4 h-4" /> Track Order Status
             </Link>
           </div>
         </div>
@@ -129,8 +146,8 @@ export default function CheckoutPage() {
     <div className="bg-brandBg min-h-screen py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary">Fast & Secure</span>
-          <h1 className="font-heading font-bold text-3xl text-dark mt-1">Prepaid Checkout</h1>
+          <span className="text-xs font-semibold uppercase tracking-wider text-primary">Free Non-GST Instant Setup</span>
+          <h1 className="font-heading font-bold text-3xl text-dark mt-1">Direct Zero-Fee Checkout</h1>
         </div>
 
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -156,7 +173,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-dark block mb-1">Mobile Number (For Delivery OTP & Call) *</label>
+                  <label className="font-semibold text-dark block mb-1">Mobile Number *</label>
                   <input
                     type="tel"
                     required
@@ -211,123 +228,71 @@ export default function CheckoutPage() {
                   />
                 </div>
               </div>
-
-              {/* GST Invoice Toggle */}
-              <div className="pt-2 border-t border-gray-100">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-dark">
-                  <input
-                    type="checkbox"
-                    checked={needGst}
-                    onChange={(e) => setNeedGst(e.target.checked)}
-                    className="rounded text-primary focus:ring-primary"
-                  />
-                  I need a GST Invoice for Business / Corporate Tax Claim
-                </label>
-                {needGst && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 text-xs">
-                    <input
-                      type="text"
-                      placeholder="Company Registered Name"
-                      value={formData.companyName}
-                      onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                      className="border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary"
-                    />
-                    <input
-                      type="text"
-                      placeholder="GSTIN Number (15 Digits)"
-                      value={formData.gstin}
-                      onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
-                      className="border border-gray-200 rounded-xl px-3 py-2 uppercase outline-none focus:border-primary font-mono"
-                    />
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* Step 2: Payment Method (Prepaid Only) */}
+            {/* Step 2: Direct Zero-Fee Non-GST UPI QR Gateway */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200/80 shadow-soft space-y-4">
-              <h2 className="font-heading font-bold text-lg text-dark flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">2</span>
-                Prepaid Payment Gateways
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="font-heading font-bold text-lg text-dark flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">2</span>
+                  Direct Bank UPI (0% Fee • No GST Required)
+                </h2>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-md">
+                  Zero Transaction Charges
+                </span>
+              </div>
 
-              <div className="space-y-3">
-                {/* UPI */}
-                <div
-                  onClick={() => setPaymentMethod('upi')}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                    paymentMethod === 'upi' ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <QrCode className="w-5 h-5 text-primary" />
-                      <div>
-                        <h4 className="font-heading font-semibold text-xs text-dark">UPI Instant Payment (Extra 5% OFF)</h4>
-                        <p className="text-[10px] text-gray-500">Google Pay, PhonePe, Paytm, BHIM</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Fastest & Preferred</span>
+              <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 text-xs space-y-4">
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  {/* Dynamic UPI QR Code */}
+                  <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm text-center shrink-0">
+                    <img
+                      src={dynamicQrUrl}
+                      alt="UPI QR Code"
+                      className="w-36 h-36 mx-auto rounded-lg"
+                    />
+                    <span className="text-[10px] text-gray-500 font-bold block mt-1">Scan via GPay / PhonePe / Paytm</span>
                   </div>
 
-                  {paymentMethod === 'upi' && (
-                    <div className="mt-4 pt-3 border-t border-gray-200/60 text-xs space-y-3">
-                      <div className="flex gap-2">
-                        {['gpay', 'phonepe', 'paytm'].map((app) => (
-                          <button
-                            key={app}
-                            type="button"
-                            onClick={() => setUpiApp(app as any)}
-                            className={`px-3 py-1.5 rounded-xl border text-xs uppercase font-bold ${
-                              upiApp === app ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200'
-                            }`}
-                          >
-                            {app}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center gap-4">
-                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center font-mono text-[10px] text-gray-400 border">
-                          [QR CODE]
-                        </div>
-                        <p className="text-[11px] text-gray-600">
-                          Scan & Pay using <strong>{upiApp.toUpperCase()}</strong>. Instant 5% Extra Prepaid Cashback will be credited.
-                        </p>
+                  <div className="space-y-3 flex-1">
+                    <div>
+                      <span className="text-gray-500 block font-medium">Merchant UPI VPA ID:</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <strong className="font-mono text-sm text-dark bg-white px-3 py-1.5 rounded-xl border border-gray-200">
+                          {merchantUpiId}
+                        </strong>
+                        <button
+                          type="button"
+                          onClick={copyUpiId}
+                          className="bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1 hover:bg-primary-dark transition-colors"
+                        >
+                          {copiedUpi ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedUpi ? 'Copied' : 'Copy'}
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Cards */}
-                <div
-                  onClick={() => setPaymentMethod('card')}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                    paymentMethod === 'card' ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="w-5 h-5 text-primary" />
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs text-dark">Credit / Debit Card (Razorpay)</h4>
-                      <p className="text-[10px] text-gray-500">Visa, Mastercard, RuPay, Diners Club</p>
+                    <div className="text-[11px] text-gray-600 leading-relaxed bg-white/80 p-2.5 rounded-xl border border-gray-200/60">
+                      💡 <strong>Instructions:</strong> Open <strong>Google Pay, PhonePe, Paytm, or BHIM</strong> ➔ Scan QR Code or Pay to <strong>{merchantUpiId}</strong> ➔ Enter amount <strong>₹{grandTotal}</strong> ➔ Copy the 12-digit UTR/Ref No below.
                     </div>
                   </div>
                 </div>
 
-                {/* NetBanking */}
-                <div
-                  onClick={() => setPaymentMethod('netbanking')}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                    paymentMethod === 'netbanking' ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-primary" />
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs text-dark">Net Banking</h4>
-                      <p className="text-[10px] text-gray-500">HDFC, ICICI, SBI, Axis, Kotak</p>
-                    </div>
-                  </div>
+                {/* 12-Digit UPI UTR Reference Input */}
+                <div className="pt-3 border-t border-gray-200">
+                  <label className="font-bold text-dark block mb-1">
+                    Enter 12-Digit UPI Ref / UTR Number * (Received after paying)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={12}
+                    placeholder="e.g. 420194819201"
+                    value={upiUtr}
+                    onChange={(e) => setUpiUtr(e.target.value)}
+                    className="w-full border border-gray-300 bg-white rounded-xl px-4 py-3 outline-none focus:border-primary font-mono text-sm tracking-wider font-bold"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Found under transaction details in your GPay / PhonePe payment receipt.</p>
                 </div>
               </div>
             </div>
@@ -371,7 +336,7 @@ export default function CheckoutPage() {
                   <span>{shippingFee === 0 ? <strong className="text-primary uppercase">FREE</strong> : `₹${shippingFee}`}</span>
                 </div>
                 <div className="flex justify-between text-base font-bold text-dark pt-2 border-t border-gray-100">
-                  <span>Total Amount</span>
+                  <span>Total Amount To Pay</span>
                   <span className="text-primary">₹{grandTotal}</span>
                 </div>
               </div>
@@ -380,12 +345,12 @@ export default function CheckoutPage() {
                 type="submit"
                 className="w-full bg-primary hover:bg-primary-dark text-white font-heading font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-float transition-all duration-300 transform active:scale-95 text-sm"
               >
-                Pay & Place Order Now <ArrowRight className="w-4 h-4" />
+                Submit Order & Verify Payment <ArrowRight className="w-4 h-4" />
               </button>
 
               <div className="flex items-center justify-center gap-2 text-[10px] text-gray-400">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>256-Bit SSL Encrypted Gateway • 100% Buyer Protection</span>
+                <span>Direct Bank Deposit • 100% Zero Gateway Fees</span>
               </div>
             </div>
           </div>

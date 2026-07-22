@@ -35,6 +35,7 @@ export interface CustomerOrder {
     price: number;
   }[];
   paymentMethod: 'upi' | 'card' | 'netbanking';
+  upiUtr?: string;
   subtotal: number;
   discountAmount: number;
   shippingFee: number;
@@ -62,6 +63,8 @@ export interface SiteContent {
   roomStorageImg: string;
   roomBathroomImg: string;
   roomLaundryImg: string;
+  merchantUpiId: string;
+  merchantQrImg: string;
 }
 
 const DEFAULT_SITE_CONTENT: SiteContent = {
@@ -73,6 +76,8 @@ const DEFAULT_SITE_CONTENT: SiteContent = {
   roomStorageImg: 'https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?q=80&w=1000&auto=format&fit=crop',
   roomBathroomImg: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1000&auto=format&fit=crop',
   roomLaundryImg: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?q=80&w=1000&auto=format&fit=crop',
+  merchantUpiId: 'gharcraft@upi',
+  merchantQrImg: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=gharcraft@upi&pn=GharCraft%20Store&cu=INR',
 };
 
 const VALID_COUPONS: Record<string, Coupon> = {
@@ -236,6 +241,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               state: o.state || '',
               items: o.items || [],
               paymentMethod: o.payment_method === 'cod' ? 'upi' : (o.payment_method || 'upi'),
+              upiUtr: o.upi_utr,
               subtotal: Number(o.subtotal || o.total_amount),
               discountAmount: Number(o.discount_amount || 0),
               shippingFee: Number(o.shipping_fee || 0),
@@ -440,6 +446,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             state: newOrder.state,
             items: newOrder.items,
             payment_method: newOrder.paymentMethod,
+            upi_utr: newOrder.upiUtr,
             subtotal: newOrder.subtotal,
             discount_amount: newOrder.discountAmount,
             shipping_fee: newOrder.shippingFee,
