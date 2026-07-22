@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Sparkles, DollarSign, ShoppingBag, Users, Tag, Package, ArrowUpRight, CheckCircle2, Clock, Truck, Edit3, Copy, Download, FileSpreadsheet, Check, Lock, Plus, Trash2, X, RefreshCw, LogOut, Image as ImageIcon, Layout, Save, QrCode } from 'lucide-react';
@@ -36,6 +36,13 @@ export default function AdminPage() {
   // Site Content Form State
   const [bannersForm, setBannersForm] = useState(siteContent);
   const [bannersSavedNotice, setBannersSavedNotice] = useState(false);
+
+  // Synchronize bannersForm when siteContent loads from LocalStorage
+  useEffect(() => {
+    if (siteContent) {
+      setBannersForm(siteContent);
+    }
+  }, [siteContent]);
 
   // Add Product Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -73,7 +80,7 @@ export default function AdminPage() {
     e.preventDefault();
     updateSiteContent(bannersForm);
     setBannersSavedNotice(true);
-    setTimeout(() => setBannersSavedNotice(false), 3000);
+    setTimeout(() => setBannersSavedNotice(false), 4000);
   };
 
   const handleCreateProduct = (e: React.FormEvent) => {
@@ -347,13 +354,13 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                 <h2 className="font-heading font-bold text-lg text-dark flex items-center gap-2">
                   <QrCode className="w-5 h-5 text-emerald-600" /> Free Non-GST UPI Gateway & Banners Configuration
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">Set your personal or business UPI VPA ID (e.g. shreyash@upi) to receive 100% direct bank deposits with 0% gateway fees and no GST number requirement!</p>
+                <p className="text-xs text-gray-500 mt-0.5">Set your personal or business UPI VPA ID (e.g. shreyash@upi) to receive 100% direct bank deposits with 0% gateway fees!</p>
               </div>
 
               {bannersSavedNotice && (
-                <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full flex items-center gap-1 animate-pulse">
-                  <Check className="w-3.5 h-3.5" /> Saved & Updated Live!
-                </span>
+                <div className="text-xs bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-lg animate-bounce">
+                  <Check className="w-4 h-4" /> Settings Saved & Applied Live!
+                </div>
               )}
             </div>
 
@@ -365,7 +372,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                 </h3>
                 <p className="text-emerald-700 text-[11px]">Money paid by customers will land directly into your HDFC, SBI, ICICI, Google Pay, or Paytm Bank Account instantly.</p>
                 <div>
-                  <label className="font-semibold text-dark block mb-1">Your UPI ID (VPA)</label>
+                  <label className="font-semibold text-dark block mb-1">Your Merchant UPI ID (VPA)</label>
                   <input
                     type="text"
                     required
@@ -388,7 +395,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                     <input
                       type="url"
                       required
-                      value={bannersForm.heroBannerImg}
+                      value={bannersForm.heroBannerImg || ''}
                       onChange={(e) => setBannersForm({ ...bannersForm, heroBannerImg: e.target.value })}
                       className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
                     />
@@ -398,7 +405,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                     <input
                       type="text"
                       required
-                      value={bannersForm.heroHeadline}
+                      value={bannersForm.heroHeadline || ''}
                       onChange={(e) => setBannersForm({ ...bannersForm, heroHeadline: e.target.value })}
                       className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary font-heading font-bold"
                     />
@@ -408,7 +415,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                     <input
                       type="text"
                       required
-                      value={bannersForm.heroSubheading}
+                      value={bannersForm.heroSubheading || ''}
                       onChange={(e) => setBannersForm({ ...bannersForm, heroSubheading: e.target.value })}
                       className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
                     />
@@ -426,10 +433,59 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                   <input
                     type="url"
                     required
-                    value={bannersForm.aboutImg}
+                    value={bannersForm.aboutImg || ''}
                     onChange={(e) => setBannersForm({ ...bannersForm, aboutImg: e.target.value })}
                     className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
                   />
+                </div>
+              </div>
+
+              {/* Section D: Room Category Card Images */}
+              <div className="p-5 bg-brandBg rounded-2xl border border-gray-200 space-y-3">
+                <h3 className="font-heading font-bold text-sm text-dark flex items-center gap-2">
+                  <Package className="w-4 h-4 text-amber-600" /> 4. Room Category Card Images
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Kitchen Room Image URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bannersForm.roomKitchenImg || ''}
+                      onChange={(e) => setBannersForm({ ...bannersForm, roomKitchenImg: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Pantry Storage Image URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bannersForm.roomStorageImg || ''}
+                      onChange={(e) => setBannersForm({ ...bannersForm, roomStorageImg: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Bathroom Room Image URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bannersForm.roomBathroomImg || ''}
+                      onChange={(e) => setBannersForm({ ...bannersForm, roomBathroomImg: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-dark block mb-1">Laundry & Living Image URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={bannersForm.roomLaundryImg || ''}
+                      onChange={(e) => setBannersForm({ ...bannersForm, roomLaundryImg: e.target.value })}
+                      className="w-full border border-gray-200 bg-white rounded-xl px-3 py-2 outline-none focus:border-primary"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -437,7 +493,7 @@ ${ord.items.map((it) => `- ${it.productName} (Qty: ${it.quantity}${it.color ? `,
                 type="submit"
                 className="bg-primary hover:bg-primary-dark text-white font-heading font-semibold px-8 py-3.5 rounded-2xl flex items-center gap-2 shadow-md transition-all text-xs"
               >
-                <Save className="w-4 h-4" /> Save Settings & UPI Gateway
+                <Save className="w-4 h-4" /> Save Settings & Apply Live
               </button>
             </form>
           </div>
